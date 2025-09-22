@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>値引きインパクト & 値上げ交渉コーチ r4</title>
+<title>価格改定検討ツール r5</title>
 <style>
   :root{
     --brand:#578899; --ink:#1f2937; --muted:#6b7280; --bg:#f7fafc;
@@ -34,7 +34,7 @@
   .kpi .val.ok{color:var(--ok)} .kpi .val.warn{color:var(--warn)}
   .slider{display:flex;align-items:center;gap:10px;margin-top:8px}
   input[type="range"]{width:100%}
-  .badge{display:inline-block;padding:3px 8px;border-radius:8px;background:#eef6fa;color:var(--brand);font-weight:700;font-size:.82rem}
+  .badge{display:inline-block;padding:3px 8px;border-radius:8px;background:#eef6fa;color:#578899;font-weight:700;font-size:.82rem}
   .area{min-height:120px}
   .table{width:100%;border-collapse:collapse;overflow:auto;display:block}
   .table th,.table td{border-bottom:1px solid #eef2f7;padding:8px 6px;font-size:.9rem;white-space:nowrap;text-align:right}
@@ -56,7 +56,7 @@
 </head>
 <body>
 <div class="wrap">
-  <div class="title">値引きインパクト & 値上げ交渉コーチ <span class="badge">r4</span></div>
+  <div class="title">価格改定検討ツール <span class="badge">r5</span></div>
   <div class="sub">値引き/値上げの「現場インパクト」を<b>限界利益</b>で数値化＆グラフ化（スマホ縦完結）。</div>
 
   <!-- STEP1 -->
@@ -220,7 +220,7 @@
   </div>
 
   <!-- フッター（ご指定形式） -->
-  <div class="credit">Copyright (c) 2025 税理士法人松本会計事務所 All Rights Reserved. / r4</div>
+  <div class="credit">Copyright (c) 2025 税理士法人松本会計事務所 All Rights Reserved. / r5</div>
   <div class="note">本ツールは管理会計上の試算です。実際の価格変更は取引条件・競合状況・需要弾力性等も併せてご判断ください。</div>
 </div>
 
@@ -344,7 +344,7 @@
   function compute(){
     const {P,C,m,Q,R0,r} = getInputs();
 
-    // 改定後単価はPとrだけで表示（他が未入力でもOK）
+    // 改定後単価はPとrだけで表示
     kpi_price2.textContent = isFinite(P) ? yen(P*(1+(isFinite(r)?r:0))) : '—';
 
     // 初期化
@@ -505,7 +505,7 @@
 
   copyResultBtn.addEventListener('click',()=>{
     const txt=
-`［値引き/値上げシミュレーション結果］
+`［価格改定検討ツール／試算結果］
 改定後単価：${kpi_price2.textContent}
 現状m：${kpi_m.textContent}
 改定後m：${kpi_m2.textContent}
