@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>価格改定検討ツール r6</title>
+<title>価格改定検討ツール r7</title>
 <style>
   :root{
     --brand:#578899; --ink:#1f2937; --muted:#6b7280; --bg:#f7fafc;
@@ -58,30 +58,24 @@
   .lg{display:inline-block;width:14px;height:10px;border-radius:3px}
   .lg.cur{background:var(--brand)} .lg.req.ok{background:var(--ok)} .lg.req.warn{background:var(--warn)}
 
-  /* レイアウト：モバイル=1カラム、PC=2カラム */
+  /* レイアウト：モバイル=1カラム、PC=2カラム（行・列を明示指定） */
   .dashboard{display:grid;gap:12px}
-  .step1{grid-column:1}
-  .step2{grid-column:1}
-  .actions{grid-column:1}
-  .result{grid-column:1}
-  .graph{grid-column:1}
-  .sens{grid-column:1}
-  .template{grid-column:1}
+  .step1,.step2,.actions,.result,.graph,.sens,.template{grid-column:1}
 
   @media (min-width:1024px){
     .dashboard{
       grid-template-columns: 380px 1fr;
       align-items:start;
     }
-    .step1{grid-column:1}
-    .step2{grid-column:1}
-    .actions{grid-column:1}
-    .result{grid-column:2}
-    .graph{grid-column:2}
-    .sens{grid-column:2}
-    .template{grid-column:2}
-    /* 結果カードを常に見える位置に */
-    .sticky{position:sticky; top:12px; z-index:1}
+    /* 左列（上から） */
+    .step1{grid-column:1; grid-row:1;}
+    .step2{grid-column:1; grid-row:2;}
+    .actions{grid-column:1; grid-row:3;}
+    /* 右列（上から） */
+    .result{grid-column:2; grid-row:1;}
+    .graph{ grid-column:2; grid-row:2;}
+    .sens{  grid-column:2; grid-row:3;}
+    .template{grid-column:2; grid-row:4;}
   }
 
   /* フッター・印刷 */
@@ -95,7 +89,7 @@
 </head>
 <body>
 <div class="wrap">
-  <div class="title">価格改定検討ツール <span class="badge">r6</span></div>
+  <div class="title">価格改定検討ツール <span class="badge">r7</span></div>
   <div class="sub">値引き/値上げの「現場インパクト」を<b>限界利益</b>で数値化＆グラフ化。</div>
 
   <div class="dashboard">
@@ -172,8 +166,8 @@
       <div class="hint" style="margin-top:6px">※限界利益率 m に対し、値引き率が −m を超えると原価割れ（利益ゼロ以下）。</div>
     </div>
 
-    <!-- 結果（PCでは右カラム先頭＆sticky） -->
-    <div class="card result sticky" id="resultCard">
+    <!-- 結果 -->
+    <div class="card result" id="resultCard">
       <div class="pill">結果</div>
       <div class="kpi">
         <div class="item">
@@ -241,7 +235,7 @@
       </div>
     </div>
 
-    <!-- 行動提案（左カラムにまとめて一覧性UP） -->
+    <!-- 行動提案 -->
     <div class="card actions">
       <div class="pill">今日やる3アクション</div>
       <ol id="actions" style="margin-top:6px;padding-left:20px"></ol>
@@ -261,13 +255,12 @@
   </div>
 
   <!-- フッター（ご指定形式） -->
-  <div class="credit">Copyright (c) 2025 税理士法人松本会計事務所 All Rights Reserved. / r6</div>
+  <div class="credit">Copyright (c) 2025 税理士法人松本会計事務所 All Rights Reserved. / r7</div>
   <div class="note">本ツールは管理会計上の試算です。実際の価格変更は取引条件・競合状況・需要弾力性等も併せてご判断ください。</div>
 </div>
 
 <script>
 (function(){
-  // ===== 便利関数 =====
   const yen = n => isFinite(n) ? new Intl.NumberFormat('ja-JP',{style:'currency',currency:'JPY',maximumFractionDigits:0}).format(n) : '—';
   const pct = x => isFinite(x) ? (x*100).toFixed(1).replace(/\.0$/,'') + '%' : '—';
   const clamp = (v,min,max)=>Math.min(max,Math.max(min,v));
@@ -282,7 +275,6 @@
     }
   };
 
-  // ===== DOM参照 =====
   const costMode = document.getElementById('costMode');
   const volMode  = document.getElementById('volMode');
   const price    = document.getElementById('price');
@@ -318,7 +310,6 @@
   const copyTemplateBtn = document.getElementById('copyTemplateBtn');
   const printBtn = document.getElementById('printBtn');
 
-  // Charts
   const revChart = document.getElementById('revChart');
   const qtyChart = document.getElementById('qtyChart');
   const lgRevOk = document.getElementById('lgRevOk');
@@ -330,7 +321,6 @@
   const lgQtyWarn = document.getElementById('lgQtyWarn');
   const lgQtyWarnLbl = document.getElementById('lgQtyWarnLbl');
 
-  // ===== 入力取得 =====
   function getInputs(){
     const P = toNum(price.value);
     let m=null, C=null;
@@ -348,7 +338,6 @@
     return {P,C,m,Q,R0,r};
   }
 
-  // ===== グラフ描画 =====
   function clearSVG(svg){ while(svg.firstChild) svg.removeChild(svg.firstChild); }
   function drawPairBar(svg, cur, req, isRev){
     clearSVG(svg); if (!(isFinite(cur)&&isFinite(req))) return;
@@ -378,27 +367,23 @@
     }
   }
 
-  // ===== 安全ゲージ =====
   function safetyGauge(m, r){
     if (!isFinite(m)){ safetyBar.style.width='0%'; return; }
-    const x = (r - (-m)) / (0.3 - (-m)); // -mで0%、+30%で100%
-    safetyBar.style.width = clamp(x*100,0,100).toFixed(1)+'%';
+    const x = (r - (-m)) / (0.3 - (-m));
+    safetyBar.style.width = Math.min(100, Math.max(0, x*100)).toFixed(1)+'%';
   }
 
-  // ===== 計算 =====
   function compute(){
     const {P,C,m,Q,R0,r} = getInputs();
 
     // 改定後単価はPとrだけで表示
-    kpi_price2.textContent = isFinite(P) ? yen(P*(1+(isFinite(r)?r:0))) : '—';
+    document.getElementById('kpi_price2').textContent = isFinite(P) ? yen(P*(1+(isFinite(r)?r:0))) : '—';
 
-    // 初期化
     [kpi_m,kpi_m2,kpi_reqRev,kpi_reqRevDiff,kpi_reqQty,kpi_reqQtyDiff].forEach(el=>{el.textContent='—'; el.classList.remove('ok','warn');});
     dangerMsg.style.display='none';
     clearSVG(revChart); clearSVG(qtyChart);
     [lgRevOk,lgRevOkLbl,lgRevWarn,lgRevWarnLbl,lgQtyOk,lgQtyOkLbl,lgQtyWarn,lgQtyWarnLbl].forEach(x=>x.style.display='none');
 
-    // 入力不足ならここまで
     if (!(isFinite(P)&&isFinite(C)&&isFinite(m)&&isFinite(Q)&&isFinite(R0)&&P>0&&C>=0&&C<P&&Q>=0&&R0>=0)){
       safetyBar.style.width='0%'; sensBody.innerHTML=''; actions.innerHTML=''; templateArea.value=''; return;
     }
@@ -432,7 +417,7 @@
     if (isFinite(Rreq)&&isFinite(Qreq)){ drawPairBar(revChart,R0,Rreq,true); drawPairBar(qtyChart,Q,Qreq,false); }
     buildSensitivity({P,C,m,Q,R0},[-10,-5,-1,1,5,10]);
     buildActions(r,m);
-    buildTemplate({r,P,P2,m,m2,R0,Rreq,Q,Qreq});
+    buildTemplate({r,P,P2:m?P*(1+r):NaN,m,m2,R0,Rreq,Q,Qreq});
   }
 
   function buildSensitivity(base, steps){
@@ -506,10 +491,9 @@
 
   function syncRangeAndBox(){
     let v=toNum(chgPct.value); if(!isFinite(v)) v=0;
-    v=clamp(v,-90,300); chgPct.value=v.toLocaleString('ja-JP'); chgRange.value=clamp(v,-30,30);
+    v=Math.min(300,Math.max(-90,v)); chgPct.value=v.toLocaleString('ja-JP'); chgRange.value=Math.min(30,Math.max(-30,v));
   }
 
-  // 印刷（iPhone対策）
   function handlePrint(){
     try{ if(typeof window.print==='function'){ window.print(); setTimeout(()=>fallbackPrint(),200); return; } }catch(e){}
     fallbackPrint();
@@ -527,7 +511,6 @@
     w.document.close(); w.focus(); setTimeout(()=>{try{w.print()}catch(e){}},300); setTimeout(()=>{try{w.close()}catch(e){}},2000);
   }
 
-  // イベント
   costMode.addEventListener('change',()=>{ if(costMode.value==='cost'){costBlock.style.display='';mrateBlock.style.display='none';}else{costBlock.style.display='none';mrateBlock.style.display='';} compute(); });
   volMode.addEventListener('change',()=>{ if(volMode.value==='qty'){qtyRow.style.display='';revRow.style.display='none';}else{qtyRow.style.display='none';revRow.style.display='';} compute(); });
 
@@ -561,7 +544,6 @@
   copyTemplateBtn.addEventListener('click',()=>{ navigator.clipboard.writeText(templateArea.value||'').then(()=>alert('テンプレをコピーしました')).catch(()=>alert('コピーに失敗しました')); });
   printBtn.addEventListener('click',handlePrint);
 
-  // 初期描画
   compute();
 })();
 </script>
