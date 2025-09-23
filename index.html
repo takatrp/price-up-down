@@ -27,7 +27,7 @@
   .primaryInput{border:2px solid var(--brand)!important;background:#f3f8fb}
   .hint{font-size:.76rem;color:var(--muted);margin-top:4px}
   .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;background:var(--brand);color:#fff;border:none;border-radius:10px;padding:10px 12px;font-weight:700;font-size:.92rem}
-  .btn.alt{background:#e5e7eb;color:#111827}
+  .btn.alt{背景:#e5e7eb;background:#e5e7eb;color:#111827}
   .toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
 
   /* KPI */
@@ -62,10 +62,9 @@
   .chip{border:1px solid #d1d5db;background:#fff;border-radius:999px;padding:6px 10px;font-size:.85rem;font-weight:700;color:#374151;cursor:pointer}
   .chip.active{border-color:var(--brand);background:#eef6fa;color:#0f172a}
 
-  /* レイアウト */
+  /* レイアウト：PC & スマホ横で2カラム */
   .dashboard{display:block}
   .colL,.colR{display:flex;flex-direction:column;gap:10px}
-  /* PC 2カラム + スマホ横(landscape)でも2カラム */
   @media (min-width:1024px), (min-width:768px) and (orientation:landscape){
     .dashboard{display:grid;grid-template-columns:380px 1fr;gap:10px;align-items:start}
   }
@@ -346,7 +345,7 @@
     const revMax = priceOk ? Math.ceil(P*10000) : 3000000;
     revRange.min = 0; revRange.max = revMax; revRange.step=1000;
 
-    // 値改定率 -70〜70（HTML側も更新済）
+    // 値改定率 -70〜70（HTML側も設定済）
     chgRange.min = -70; chgRange.max = 70; chgRange.step=1;
 
     // 改定後単価 0〜2×単価（初期値は現状単価）
@@ -400,7 +399,6 @@
   }
 
   // 感度表
-  const sensBody=document.querySelector('#sensTable tbody');
   function buildSensitivity(base,steps){
     const {P,C,Q,R0}=base, T0=(P-C)*Q; sensBody.innerHTML='';
     steps.forEach(s=>{
