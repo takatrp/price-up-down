@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>価格改定検討ツール r14</title>
+<title>価格改定検討ツール r15</title>
 <style>
   :root{--brand:#578899;--ink:#1f2937;--muted:#6b7280;--bg:#f7fafc;--ok:#10b981;--warn:#ef4444;--card:#fff;--grid:#e5e7eb;}
   html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Hiragino Kaku Gothic ProN","Yu Gothic","Meiryo",sans-serif;}
@@ -18,7 +18,8 @@
 
   /* カード */
   .card{background:var(--card);border-radius:12px;box-shadow:0 2px 10px rgba(0,0,0,.06);padding:12px}
-  .pill{display:inline-block;background:rgba(87,136,153,.1);color:var(--brand);font-weight:700;border-radius:999px;padding:5px 9px;font-size:.8rem;margin-right:6px}
+  .pill{display:inline-block;background:rgba(87,136,153,.1);color:var(--brand);font-weight:700;border-radius:999px;padding:5px 9px;font-size:.8rem}
+  .cardHeader{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
   .row{display:flex;gap:8px;flex-wrap:wrap}
   .col{flex:1 1 160px;min-width:160px}
   label{display:block;font-size:.86rem;color:#374151;margin:6px 0 6px;font-weight:600}
@@ -26,9 +27,13 @@
   input:focus,textarea:focus{border-color:var(--brand);box-shadow:0 0 0 3px rgba(87,136,153,.15)}
   .primaryInput{border:2px solid var(--brand)!important;background:#f3f8fb}
   .hint{font-size:.76rem;color:var(--muted);margin-top:4px}
+
+  /* ボタン */
   .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;background:var(--brand);color:#fff;border:none;border-radius:10px;padding:10px 12px;font-weight:700;font-size:.92rem}
   .btn.alt{background:#e5e7eb;color:#111827}
+  .btn.sm{padding:6px 8px;font-size:.82rem;border-radius:8px}
   .toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+  .miniActions{display:flex;gap:6px}
 
   /* KPI */
   .kpi{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
@@ -37,6 +42,14 @@
   .kpi .val{font-size:1.2rem;font-weight:800;margin-top:2px}
   .kpi .val.ok{color:var(--ok)} .kpi .val.warn{color:var(--warn)}
   .danger{color:var(--warn);font-weight:700;margin-top:8px}
+
+  /* サブカード（限界利益率/額のまとめ表示） */
+  .subgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:6px}
+  .subcard{border:1px solid #eef2f7;border-radius:10px;padding:10px;background:#fff}
+  .subttl{font-size:.82rem;color:#6b7280;font-weight:700;margin-bottom:6px}
+  .pair{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .pair .lbl{font-size:.75rem;color:#6b7280}
+  .pair .val{font-size:1.15rem;font-weight:800;margin-top:2px}
 
   /* スライダー */
   .slider{display:flex;align-items:center;gap:8px;margin-top:6px}
@@ -78,7 +91,7 @@
 <div class="wrap">
   <div class="header">
     <img src="ロゴ.jpg" alt="ロゴ" class="logo">
-    <div class="title">価格改定検討ツール <span class="badge">r14</span></div>
+    <div class="title">価格改定検討ツール <span class="badge">r15</span></div>
   </div>
   <div class="sub">値引き/値上げの「現場インパクト」を<b>限界利益</b>で数値化＆グラフ化。</div>
 
@@ -86,7 +99,14 @@
     <!-- 左 -->
     <div class="colL">
       <div class="card step1">
-        <div class="pill">STEP 1：現状を入力</div>
+        <div class="cardHeader">
+          <div class="pill">STEP 1：現状を入力</div>
+          <!-- 上部右側に移動＆小型化 -->
+          <div class="miniActions">
+            <button class="btn alt sm" id="sampleBtn" type="button">サンプル読込</button>
+            <button class="btn alt sm" id="resetBtn" type="button">リセット</button>
+          </div>
+        </div>
 
         <label>現在の単価（税抜）</label>
         <input type="text" id="price" class="primaryInput" inputmode="decimal" placeholder="例）1,200" />
@@ -135,11 +155,6 @@
         </div>
 
         <div class="hint">※固定費は扱いません（「同じ限界利益額を維持するために必要な売上/数量」を算出）。</div>
-
-        <div class="toolbar">
-          <button class="btn alt" id="sampleBtn" type="button">サンプル読込</button>
-          <button class="btn alt" id="resetBtn" type="button">リセット</button>
-        </div>
       </div>
 
       <div class="card step2">
@@ -184,12 +199,44 @@
     <div class="colR">
       <div class="card result" id="resultCard">
         <div class="pill">結果</div>
-        <div class="kpi">
+
+        <!-- まず単価 -->
+        <div class="kpi" style="margin-top:6px">
           <div class="item"><div class="lbl">改定後単価</div><div class="val" id="kpi_price2">—</div></div>
-          <div class="item"><div class="lbl">現状の限界利益率</div><div class="val" id="kpi_m">—</div></div>
-          <div class="item"><div class="lbl">値改定後の限界利益率</div><div class="val" id="kpi_m2">—</div></div>
-          <div class="item"><div class="lbl">現状の限界利益額</div><div class="val" id="kpi_T0">—</div></div>
-          <div class="item"><div class="lbl">改定後限界利益額</div><div class="val" id="kpi_T2">—</div></div>
+        </div>
+
+        <!-- 限界利益率／額をまとめた小カード -->
+        <div class="subgrid">
+          <div class="subcard">
+            <div class="subttl">限界利益率</div>
+            <div class="pair">
+              <div>
+                <div class="lbl">現状</div>
+                <div class="val" id="kpi_m_cur">—</div>
+              </div>
+              <div>
+                <div class="lbl">改定後</div>
+                <div class="val" id="kpi_m2">—</div>
+              </div>
+            </div>
+          </div>
+          <div class="subcard">
+            <div class="subttl">限界利益額</div>
+            <div class="pair">
+              <div>
+                <div class="lbl">現状</div>
+                <div class="val" id="kpi_T0">—</div>
+              </div>
+              <div>
+                <div class="lbl">改定後</div>
+                <div class="val" id="kpi_T2">—</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 必要売上・数量 -->
+        <div class="kpi">
           <div class="item">
             <div class="lbl">同じ限界利益額を維持するための必要売上</div>
             <div class="val" id="kpi_reqRev">—</div>
@@ -201,6 +248,7 @@
             <div class="hint" id="kpi_reqQtyDiff"></div>
           </div>
         </div>
+
         <div id="dangerMsg" class="danger" style="display:none"></div>
       </div>
 
@@ -252,7 +300,7 @@
     </div>
   </div>
 
-  <div class="credit">Copyright (c) 2025 税理士法人松本会計事務所 All Rights Reserved. / r14</div>
+  <div class="credit">Copyright (c) 2025 税理士法人松本会計事務所 All Rights Reserved. / r15</div>
   <div class="note">本ツールは管理会計上の試算です。実際の価格変更は取引条件・競合状況・需要弾力性等も併せてご判断ください。</div>
 </div>
 
@@ -292,7 +340,7 @@
   const safetyBar=document.getElementById('safetyBar');
 
   const kpi_price2=document.getElementById('kpi_price2');
-  const kpi_m=document.getElementById('kpi_m');
+  const kpi_m_cur=document.getElementById('kpi_m_cur');
   const kpi_m2=document.getElementById('kpi_m2');
   const kpi_T0=document.getElementById('kpi_T0');
   const kpi_T2=document.getElementById('kpi_T2');
@@ -338,21 +386,16 @@
     const P=toNum(price.value);
     const priceOk=isFinite(P)&&P>0;
 
-    // 原価 max＝現在の単価
     const costMax = priceOk ? Math.floor(P) : 100000;
     costRange.min = 0; costRange.max = costMax; costRange.step=1;
 
-    // 数量 max＝10,000
     qtyRange.min = 0; qtyRange.max = 10000; qtyRange.step=1;
 
-    // 売上高 max＝単価×10,000（単価未入力時は暫定300万）
     const revMax = priceOk ? Math.ceil(P*10000) : 3000000;
     revRange.min = 0; revRange.max = revMax; revRange.step=1000;
 
-    // 値改定率 -70〜70
     chgRange.min = -70; chgRange.max = 70; chgRange.step=1;
 
-    // 改定後単価 0〜2×単価（初期値は現状単価）
     const absMax = priceOk ? Math.ceil(P*2) : 200000;
     chgAbsRange.min = 0; chgAbsRange.max = absMax; chgAbsRange.step=1;
     if (chgMode==='abs'){
@@ -361,7 +404,6 @@
       chgAbsRange.value = clamp(isFinite(curr)?curr:(priceOk?P:0), 0, absMax);
     }
 
-    // 入力を範囲にクランプ
     const clampIO=(rangeEl,inputEl,dec=null)=>{
       const v=toNum(inputEl.value);
       if(isFinite(v)){
@@ -396,13 +438,11 @@
     else{lgQtyOk.style.display=up?'none':'inline-block';lgQtyOkLbl.style.display=up?'none':'inline';lgQtyWarn.style.display=up?'inline-block':'none';lgQtyWarnLbl.style.display=up?'inline':'none';}
   }
 
-  // 安全域ゲージ
   function safetyGauge(m,r){
     if(!isFinite(m)){safetyBar.style.width='0%';return;}
     const x=(r-(-m))/(0.3-(-m)); safetyBar.style.width=Math.min(100,Math.max(0,x*100)).toFixed(1)+'%';
   }
 
-  // 感度表
   function buildSensitivity(base,steps){
     const {P,C,Q,R0}=base, T0=(P-C)*Q; sensBody.innerHTML='';
     steps.forEach(s=>{
@@ -457,7 +497,6 @@
 担当：＿＿＿＿／TEL：＿＿＿＿／MAIL：＿＿＿＿
 `; }
 
-  // 入力取得
   function getInputs(){
     const P=toNum(price.value);
     let m=null,C=null;
@@ -476,12 +515,11 @@
   }
 
   function compute(){
-    updateRanges(); // 仕様固定で更新
+    updateRanges();
 
     const {P,C,m,Q,R0,r,P2}=getInputs();
     kpi_price2.textContent = isFinite(P2)?yen(P2):'—';
 
-    // 率↔額 同期（範囲内にクランプ）
     if(chgMode==='rate' && isFinite(P2)){
       const absMax = Number(chgAbsRange.max)||0;
       const cl = clamp(P2, Number(chgAbsRange.min), absMax);
@@ -495,8 +533,7 @@
       chgRange.value=Math.round(clPct);
     }
 
-    // 初期リセット
-    [kpi_m,kpi_m2,kpi_T0,kpi_T2,kpi_reqRev,kpi_reqRevDiff,kpi_reqQty,kpi_reqQtyDiff].forEach(el=>{el.textContent='—';el.classList.remove('ok','warn');});
+    [kpi_m_cur,kpi_m2,kpi_T0,kpi_T2,kpi_reqRev,kpi_reqRevDiff,kpi_reqQty,kpi_reqQtyDiff].forEach(el=>{el.textContent='—';el.classList.remove('ok','warn');});
     dangerMsg.style.display='none'; clearSVG(revChart); clearSVG(qtyChart);
     [lgRevOk,lgRevOkLbl,lgRevWarn,lgRevWarnLbl,lgQtyOk,lgQtyOkLbl,lgQtyWarn,lgQtyWarnLbl].forEach(x=>x.style.display='none');
 
@@ -505,21 +542,18 @@
     }
 
     const CM=P-C, CM2=P2-C, m2=CM2/P2, rEff=(P2/P-1);
-    const T0 = CM*Q;                 // 現状の限界利益額（同一数量）
-    const T2 = CM2*Q;                // 改定後限界利益額（同一数量）
-    const T0pos = T0;                // 基準（必要売上/数量算出用）
+    const T0 = CM*Q;
+    const T2 = CM2*Q;
     safetyGauge(m,rEff);
 
-    // KPI反映
-    kpi_m.textContent=pct(m);
+    kpi_m_cur.textContent=pct(m);
     kpi_m2.textContent=isFinite(m2)?pct(m2):'—';
     kpi_T0.textContent=yen(T0);
     kpi_T2.textContent=yen(T2);
-    if(m2<=0||!isFinite(m2)){ dangerMsg.style.display='block'; dangerMsg.textContent='警告：この値引き率では限界利益が0以下（原価割れ）です。値引き率見直しや原価改善が必要です。'; kpi_m2.classList.add('warn'); }
+    if(m2<=0||!isFinite(m2)){ dangerMsg.style.display='block'; dangerMsg.textContent='警告：この値引き率では限界利益が0以下（原価割れ）です。'; kpi_m2.classList.add('warn'); }
 
-    // 「同じ限界利益額を維持」指標
     let Qreq,Rreq,dQ,dR;
-    if(CM2>0){ Qreq=T0pos/CM2; Rreq=P2*Qreq; dQ=Qreq-Q; dR=Rreq-R0; }
+    if(CM2>0){ Qreq=T0/CM2; Rreq=P2*Qreq; dQ=Qreq-Q; dR=Rreq-R0; }
 
     if(isFinite(Rreq)){
       kpi_reqRev.textContent=yen(Rreq);
@@ -540,7 +574,7 @@
     buildTemplate({r:rEff,P,P2,R0,Rreq,Q,Qreq});
   }
 
-  // 相互同期（スライダー⇔テキスト）
+  /* スライダー⇔テキスト同期 */
   const bindSlider = (rangeEl, inputEl, dec=null) => {
     rangeEl.addEventListener('input', ()=>{
       const v=Number(rangeEl.value);
@@ -550,9 +584,7 @@
     inputEl.addEventListener('input', ()=>{
       formatComma(inputEl,dec);
       const v=toNum(inputEl.value);
-      if(isFinite(v)){
-        rangeEl.value = clamp(v, Number(rangeEl.min), Number(rangeEl.max));
-      }
+      if(isFinite(v)){ rangeEl.value = clamp(v, Number(rangeEl.min), Number(rangeEl.max)); }
       compute();
     });
   };
@@ -562,7 +594,6 @@
   bindSlider(revRange, revenue);
   bindSlider(chgAbsRange, chgAbs);
 
-  // 値改定率
   chgRange.addEventListener('input',()=>{ chgPct.value=Number(chgRange.value).toLocaleString('ja-JP'); compute(); });
   chgPct.addEventListener('input',()=>{
     let v=parseFloat(String(chgPct.value).replace(/,/g,'')); if(!isFinite(v)) v=0;
@@ -570,7 +601,6 @@
     chgPct.value=v.toLocaleString('ja-JP'); chgRange.value=Math.round(v); compute();
   });
 
-  // 単価変更時：レンジ再設定／改定後単価の初期化（absモード時）
   price.addEventListener('input',()=>{
     formatComma(price);
     if(chgMode==='abs' && !chgAbs.value){
@@ -579,7 +609,6 @@
     updateRanges(); compute();
   });
 
-  // チップ切替
   function setCostMode(mode){ costMode=mode;
     if(mode==='cost'){ chipCost.classList.add('active'); chipMrate.classList.remove('active'); blockCost.style.display=''; blockMrate.style.display='none'; }
     else{ chipMrate.classList.add('active'); chipCost.classList.remove('active'); blockCost.style.display='none'; blockMrate.style.display=''; }
@@ -599,7 +628,6 @@
       chipAbs.classList.add('active'); chipRate.classList.remove('active');
       document.getElementById('rateInputs').style.display='none';
       document.getElementById('absInputs').style.display='block';
-      // 初期値＝現状単価
       const P=toNum(price.value); if(isFinite(P)&&P>0 && !chgAbs.value){ chgAbs.value=Math.round(P).toLocaleString('ja-JP'); }
     }
     updateRanges(); compute();
@@ -612,11 +640,10 @@
   chipRate.addEventListener('click',()=>setChgMode('rate'));
   chipAbs.addEventListener('click',()=>setChgMode('abs'));
 
-  // サンプル／リセット
   document.getElementById('sampleBtn').addEventListener('click',()=>{
     setCostMode('cost'); setVolMode('qty'); setChgMode('rate');
-    price.value='1,200'; cost.value='720'; qty.value='1,000';
-    chgRange.value=-5; chgPct.value='-5'; chgAbs.value='';
+    price.value='2,000'; cost.value='1,120'; qty.value='600';
+    chgRange.value='-5'; chgPct.value='-5'; chgAbs.value='';
     updateRanges();
     costRange.value=toNum(cost.value); qtyRange.value=toNum(qty.value);
     compute();
@@ -627,8 +654,17 @@
     updateRanges(); compute();
   });
 
-  // 印刷
   document.getElementById('printBtn').addEventListener('click',()=>{ try{ if(typeof window.print==='function'){ window.print(); } }catch(e){} });
+
+  function relocateActions(){
+    const isTwo = isTwoCol();
+    if(isTwo){
+      const step2=document.querySelector('.step2');
+      if(actionsCard.previousElementSibling!==step2){ step2.insertAdjacentElement('afterend',actionsCard); }
+    }else{
+      if(actionsCard.previousElementSibling!==sensCard){ sensCard.insertAdjacentElement('afterend',actionsCard); }
+    }
+  }
 
   relocateActions();
   updateRanges();
