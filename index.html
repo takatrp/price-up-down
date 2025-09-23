@@ -3,34 +3,30 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>価格改定検討ツール r10</title>
+<title>価格改定検討ツール r11</title>
 <style>
   :root{--brand:#578899;--ink:#1f2937;--muted:#6b7280;--bg:#f7fafc;--ok:#10b981;--warn:#ef4444;--card:#fff;--grid:#e5e7eb;}
   html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Hiragino Kaku Gothic ProN","Yu Gothic","Meiryo",sans-serif;}
   .wrap{max-width:1100px;margin:0 auto;padding:12px}
-
-  /* ヘッダー */
   .header{display:flex;align-items:center;gap:12px;margin:6px 0 8px}
   .logo{height:44px;width:auto;object-fit:contain;border-radius:8px}
   .title{font-weight:800;font-size:1.25rem;color:#0f172a}
   .badge{display:inline-block;padding:3px 8px;border-radius:8px;background:#eef6fa;color:#578899;font-weight:700;font-size:.82rem;margin-left:6px;vertical-align:middle}
   .sub{font-size:.85rem;color:var(--muted);margin:0 0 8px}
 
-  /* カード */
   .card{background:var(--card);border-radius:12px;box-shadow:0 2px 10px rgba(0,0,0,.06);padding:12px}
   .pill{display:inline-block;background:rgba(87,136,153,.1);color:var(--brand);font-weight:700;border-radius:999px;padding:5px 9px;font-size:.8rem;margin-right:6px}
   .row{display:flex;gap:8px;flex-wrap:wrap}
   .col{flex:1 1 160px;min-width:160px}
   label{display:block;font-size:.86rem;color:#374151;margin:6px 0 6px;font-weight:600}
-  input[type="text"],select,textarea{width:100%;box-sizing:border-box;border:1px solid #e5e7eb;border-radius:10px;padding:10px;font-size:1rem;background:#fff;outline:none}
-  input:focus,select:focus,textarea:focus{border-color:var(--brand);box-shadow:0 0 0 3px rgba(87,136,153,.15)}
+  input[type="text"],textarea{width:100%;box-sizing:border-box;border:1px solid #e5e7eb;border-radius:10px;padding:10px;font-size:1rem;background:#fff;outline:none}
+  input:focus,textarea:focus{border-color:var(--brand);box-shadow:0 0 0 3px rgba(87,136,153,.15)}
   .primaryInput{border:2px solid var(--brand)!important;background:#f3f8fb}
   .hint{font-size:.76rem;color:var(--muted);margin-top:4px}
   .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;background:var(--brand);color:#fff;border:none;border-radius:10px;padding:10px 12px;font-weight:700;font-size:.92rem}
   .btn.alt{background:#e5e7eb;color:#111827}
   .toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
 
-  /* KPI */
   .kpi{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
   .kpi .item{flex:1 1 160px;min-width:160px;background:#fff;border:1px solid #eef2f7;border-radius:10px;padding:10px}
   .kpi .lbl{font-size:.76rem;color:#6b7280}
@@ -38,38 +34,32 @@
   .kpi .val.ok{color:var(--ok)} .kpi .val.warn{color:var(--warn)}
   .danger{color:var(--warn);font-weight:700;margin-top:8px}
 
-  /* スライダー & 安全バー */
-  .slider{display:flex;align-items:center;gap:8px;margin-top:8px}
+  .slider{display:flex;align-items:center;gap:8px;margin-top:6px}
   input[type="range"]{width:100%}
   .bar{height:8px;border-radius:999px;background:#e5e7eb;overflow:hidden}
   .bar>span{display:block;height:100%;background:linear-gradient(90deg,var(--warn),#f59e0b,var(--ok));width:0%}
 
-  /* テーブル */
   .table{width:100%;border-collapse:collapse;overflow:auto;display:block}
   .table th,.table td{border-bottom:1px solid #eef2f7;padding:6px 6px;font-size:.88rem;white-space:nowrap;text-align:right}
   .table th:first-child,.table td:first-child{text-align:left}
 
-  /* グラフ */
   .chartWrap{display:flex;flex-direction:column;gap:8px}
   .chart{width:100%;height:110px;border:1px solid var(--grid);border-radius:10px;padding:8px;box-sizing:border-box}
   svg{width:100%;height:100%}
   .legend{display:flex;gap:8px;align-items:center;font-size:.82rem;color:#374151;margin-top:4px}
   .lg{display:inline-block;width:14px;height:10px;border-radius:3px}
-  .lg.cur{background:var(--brand)} .lg.req.ok{background:var(--ok)} .lg.req.warn{background:var(--warn)}
+  .lg.cur{background:var(--brand)} .lg.req.ok{background:#10b981} .lg.req.warn{background:#ef4444}
 
-  /* チップ（切替ボタン） */
   .chipGroup{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;margin-bottom:2px}
   .chip{border:1px solid #d1d5db;background:#fff;border-radius:999px;padding:6px 10px;font-size:.85rem;font-weight:700;color:#374151;cursor:pointer}
   .chip.active{border-color:var(--brand);background:#eef6fa;color:#0f172a}
 
-  /* レイアウト：PCは左右独立スタック（右を上詰め）、SPは1カラム */
   .dashboard{display:block}
   .colL,.colR{display:flex;flex-direction:column;gap:10px}
   @media (min-width:1024px){
     .dashboard{display:grid;grid-template-columns:380px 1fr;gap:10px;align-items:start}
   }
 
-  /* フッター・印刷 */
   .credit{color:#374151;font-size:.84rem;text-align:center;margin:16px 0 8px}
   .note{font-size:.8rem;color:#6b7280;text-align:center;margin-bottom:24px}
   @media print{.toolbar,button,.slider input[type="range"]{display:none !important}.wrap{max-width:900px}}
@@ -77,55 +67,60 @@
 </head>
 <body>
 <div class="wrap">
-  <!-- ヘッダー -->
   <div class="header">
     <img src="ロゴ.jpg" alt="ロゴ" class="logo">
-    <div class="title">価格改定検討ツール <span class="badge">r10</span></div>
+    <div class="title">価格改定検討ツール <span class="badge">r11</span></div>
   </div>
   <div class="sub">値引き/値上げの「現場インパクト」を<b>限界利益</b>で数値化＆グラフ化。</div>
 
   <div class="dashboard">
-    <!-- 左カラム -->
+    <!-- 左 -->
     <div class="colL">
-      <!-- STEP1：チップ式フロー -->
       <div class="card step1">
         <div class="pill">STEP 1：現状を入力</div>
 
         <label>現在の単価（税抜）</label>
         <input type="text" id="price" class="primaryInput" inputmode="decimal" placeholder="例）1,200" />
 
-        <!-- 2段目：原価 or 限界利益率 -->
         <div class="chipGroup" aria-label="コスト入力方法">
           <button class="chip active" id="chipCost" type="button">原価（変動費）</button>
           <button class="chip" id="chipMrate" type="button">限界利益率</button>
         </div>
-        <div class="row" id="blockCost">
-          <div class="col">
-            <label>1単位あたり原価（変動費）</label>
+        <!-- 原価 -->
+        <div id="blockCost">
+          <label>1単位あたり原価（変動費）</label>
+          <div class="slider">
+            <input type="range" id="costRange" min="0" max="100000" step="1" />
             <input type="text" id="cost" inputmode="decimal" placeholder="例）720" />
           </div>
         </div>
-        <div class="row" id="blockMrate" style="display:none">
-          <div class="col">
-            <label>限界利益率（%）</label>
+        <!-- m率 -->
+        <div id="blockMrate" style="display:none">
+          <label>限界利益率（%）</label>
+          <div class="slider">
+            <input type="range" id="mrateRange" min="0" max="90" step="0.1" />
             <input type="text" id="mrate" inputmode="decimal" placeholder="例）40" />
+            <span class="hint">%</span>
           </div>
         </div>
 
-        <!-- 3段目：数量 or 売上高 -->
         <div class="chipGroup" aria-label="ボリューム入力方法">
           <button class="chip active" id="chipQty" type="button">数量</button>
           <button class="chip" id="chipRev" type="button">売上高</button>
         </div>
-        <div class="row" id="blockQty">
-          <div class="col">
-            <label>月間販売数量（単位）</label>
+        <!-- 数量 -->
+        <div id="blockQty">
+          <label>月間販売数量（単位）</label>
+          <div class="slider">
+            <input type="range" id="qtyRange" min="0" max="5000" step="1" />
             <input type="text" id="qty" inputmode="numeric" placeholder="例）1,000" />
           </div>
         </div>
-        <div class="row" id="blockRev" style="display:none">
-          <div class="col">
-            <label>月間売上高（税抜）</label>
+        <!-- 売上高 -->
+        <div id="blockRev" style="display:none">
+          <label>月間売上高（税抜）</label>
+          <div class="slider">
+            <input type="range" id="revRange" min="0" max="3000000" step="1000" />
             <input type="text" id="revenue" inputmode="decimal" placeholder="例）1,200,000" />
           </div>
         </div>
@@ -138,7 +133,6 @@
         </div>
       </div>
 
-      <!-- STEP2：改定方法のチップ切替 -->
       <div class="card step2">
         <div class="pill">STEP 2：値改定を設定</div>
 
@@ -147,7 +141,7 @@
           <button class="chip" id="chipAbs" type="button" aria-selected="false">改定後単価</button>
         </div>
 
-        <!-- 率入力 -->
+        <!-- 率 -->
         <div id="rateInputs">
           <label>値改定率（%） <span class="hint">マイナス=値引き、プラス=値上げ</span></label>
           <div class="slider">
@@ -157,10 +151,13 @@
           </div>
         </div>
 
-        <!-- 直接額入力 -->
+        <!-- 改定後単価（スライダー付き） -->
         <div id="absInputs" style="display:none">
           <label>改定後単価（税抜）</label>
-          <input type="text" id="chgAbs" inputmode="decimal" placeholder="例）1,140" />
+          <div class="slider">
+            <input type="range" id="chgAbsRange" min="0" max="200000" step="1" />
+            <input type="text" id="chgAbs" inputmode="decimal" placeholder="例）1,140" />
+          </div>
         </div>
 
         <div class="hint" style="margin-top:6px">安全域インジケータ</div>
@@ -168,14 +165,13 @@
         <div class="hint" style="margin-top:6px">※限界利益率 m に対し、値引き率が −m を超えると原価割れ（利益ゼロ以下）。</div>
       </div>
 
-      <!-- アクション（PCは左、SPは感度の下に移動） -->
       <div class="card actions" id="actionsCard">
         <div class="pill">今日やる3アクション</div>
         <ol id="actions" style="margin-top:6px;padding-left:20px"></ol>
       </div>
     </div>
 
-    <!-- 右カラム（上詰めスタック） -->
+    <!-- 右 -->
     <div class="colR">
       <div class="card result" id="resultCard">
         <div class="pill">結果</div>
@@ -245,51 +241,41 @@
     </div>
   </div>
 
-  <div class="credit">Copyright (c) 2025 税理士法人松本会計事務所 All Rights Reserved. / r10</div>
+  <div class="credit">Copyright (c) 2025 税理士法人松本会計事務所 All Rights Reserved. / r11</div>
   <div class="note">本ツールは管理会計上の試算です。実際の価格変更は取引条件・競合状況・需要弾力性等も併せてご判断ください。</div>
 </div>
 
 <script>
 (function(){
-  // ---- helpers ----
   const yen = n => isFinite(n) ? new Intl.NumberFormat('ja-JP',{style:'currency',currency:'JPY',maximumFractionDigits:0}).format(n) : '—';
   const pct = x => isFinite(x) ? (x*100).toFixed(1).replace(/\.0$/,'') + '%' : '—';
-  const toNum = v => { const s=String(v||'').replace(/,/g,'').replace(/[^\d.-]/g,''); const n=parseFloat(s); return isFinite(n)?n:NaN; };
-  const formatComma = (el,dec=null)=>{
-    const n=toNum(el.value); if(!isFinite(n)) return;
-    if(dec===0) el.value=Math.round(n).toLocaleString('ja-JP');
-    else if(typeof dec==='number') el.value=n.toLocaleString('ja-JP',{minimumFractionDigits:dec,maximumFractionDigits:dec});
-    else{ const raw=String(el.value).replace(/,/g,''); const hasDot=raw.includes('.'); el.value=hasDot?n.toLocaleString('ja-JP',{maximumFractionDigits:6}):Math.round(n).toLocaleString('ja-JP');}
+  const toNum=v=>{const s=String(v||'').replace(/,/g,'').replace(/[^\d.-]/g,'');const n=parseFloat(s);return isFinite(n)?n:NaN;}
+  const formatComma=(el,dec=null)=>{const n=toNum(el.value);if(!isFinite(n))return;
+    if(dec===0)el.value=Math.round(n).toLocaleString('ja-JP');
+    else if(typeof dec==='number')el.value=n.toLocaleString('ja-JP',{minimumFractionDigits:dec,maximumFractionDigits:dec});
+    else{const raw=String(el.value).replace(/,/g,'');const hasDot=raw.includes('.');el.value=hasDot?n.toLocaleString('ja-JP',{maximumFractionDigits:6}):Math.round(n).toLocaleString('ja-JP');}
   };
 
-  // ---- state ----
-  let costMode='cost';   // 'cost' | 'mrate'
-  let volMode='qty';     // 'qty' | 'rev'
-  let chgMode='rate';    // 'rate' | 'abs'
+  // 状態
+  let costMode='cost', volMode='qty', chgMode='rate';
 
-  // ---- DOM ----
+  // 要素
   const price=document.getElementById('price');
-  const cost=document.getElementById('cost');
-  const mrate=document.getElementById('mrate');
-  const qty=document.getElementById('qty');
-  const revenue=document.getElementById('revenue');
-  const blockCost=document.getElementById('blockCost');
-  const blockMrate=document.getElementById('blockMrate');
-  const blockQty=document.getElementById('blockQty');
-  const blockRev=document.getElementById('blockRev');
+  const chipCost=document.getElementById('chipCost'), chipMrate=document.getElementById('chipMrate');
+  const chipQty=document.getElementById('chipQty'), chipRev=document.getElementById('chipRev');
+  const chipRate=document.getElementById('chipRate'), chipAbs=document.getElementById('chipAbs');
 
-  const chipCost=document.getElementById('chipCost');
-  const chipMrate=document.getElementById('chipMrate');
-  const chipQty=document.getElementById('chipQty');
-  const chipRev=document.getElementById('chipRev');
+  const blockCost=document.getElementById('blockCost'), blockMrate=document.getElementById('blockMrate');
+  const blockQty=document.getElementById('blockQty'), blockRev=document.getElementById('blockRev');
 
-  const chipRate=document.getElementById('chipRate');
-  const chipAbs=document.getElementById('chipAbs');
-  const rateInputs=document.getElementById('rateInputs');
-  const absInputs=document.getElementById('absInputs');
-  const chgRange=document.getElementById('chgRange');
-  const chgPct=document.getElementById('chgPct');
-  const chgAbs=document.getElementById('chgAbs');
+  const cost=document.getElementById('cost'), costRange=document.getElementById('costRange');
+  const mrate=document.getElementById('mrate'), mrateRange=document.getElementById('mrateRange');
+
+  const qty=document.getElementById('qty'), qtyRange=document.getElementById('qtyRange');
+  const revenue=document.getElementById('revenue'), revRange=document.getElementById('revRange');
+
+  const chgRange=document.getElementById('chgRange'), chgPct=document.getElementById('chgPct');
+  const chgAbs=document.getElementById('chgAbs'), chgAbsRange=document.getElementById('chgAbsRange');
 
   const safetyBar=document.getElementById('safetyBar');
 
@@ -301,18 +287,11 @@
   const kpi_reqQty=document.getElementById('kpi_reqQty');
   const kpi_reqQtyDiff=document.getElementById('kpi_reqQtyDiff');
   const dangerMsg=document.getElementById('dangerMsg');
-
   const sensBody=document.querySelector('#sensTable tbody');
   const actions=document.getElementById('actions');
+  const templateArea=document.getElementById('templateArea');
   const actionsCard=document.getElementById('actionsCard');
   const sensCard=document.getElementById('sensCard');
-  const templateArea=document.getElementById('templateArea');
-
-  const sampleBtn=document.getElementById('sampleBtn');
-  const resetBtn=document.getElementById('resetBtn');
-  const copyResultBtn=document.getElementById('copyResultBtn');
-  const copyTemplateBtn=document.getElementById('copyTemplateBtn');
-  const printBtn=document.getElementById('printBtn');
 
   const revChart=document.getElementById('revChart');
   const qtyChart=document.getElementById('qtyChart');
@@ -325,27 +304,58 @@
   const lgQtyWarn=document.getElementById('lgQtyWarn');
   const lgQtyWarnLbl=document.getElementById('lgQtyWarnLbl');
 
-  // ---- layout (SP時の移動) ----
   function relocateActions(){
     const isMobile = window.matchMedia('(max-width:1023px)').matches;
-    if(isMobile){
-      if(actionsCard.previousElementSibling !== sensCard){
-        sensCard.insertAdjacentElement('afterend', actionsCard);
-      }
-    }else{
-      // PCは左カラム(step1/step2の直後)へ
-      const step2 = document.querySelector('.step2');
-      if(actionsCard.previousElementSibling !== step2){
-        step2.insertAdjacentElement('afterend', actionsCard);
-      }
-    }
+    if(isMobile){ if(actionsCard.previousElementSibling!==sensCard){ sensCard.insertAdjacentElement('afterend',actionsCard);} }
+    else{ const step2=document.querySelector('.step2'); if(actionsCard.previousElementSibling!==step2){ step2.insertAdjacentElement('afterend',actionsCard);} }
   }
   window.addEventListener('resize', relocateActions);
 
-  // ---- numeric display helpers ----
-  function clearSVG(svg){while(svg.firstChild) svg.removeChild(svg.firstChild);}
+  // スライダー範囲の動的最適化
+  function updateRanges(){
+    const P=toNum(price.value);
+    const Q=toNum(qty.value), R0=toNum(revenue.value);
+    const baseP = isFinite(P)&&P>0 ? P : 200000;
+    costRange.min = 0; costRange.max = Math.max(1, Math.floor(baseP*0.99)); costRange.step=1;
+    mrateRange.min = 0; mrateRange.max = 90; mrateRange.step = 0.1;
+
+    const baseQ = isFinite(Q)&&Q>=0 ? Q : 1000;
+    qtyRange.min=0; qtyRange.max=Math.max(10, Math.ceil(baseQ*3)); qtyRange.step=1;
+
+    const baseR = isFinite(R0)&&R0>=0 ? R0 : (isFinite(P)? P*baseQ : 1000000);
+    revRange.min=0; revRange.max=Math.max(1000, Math.ceil(baseR*3/1000)*1000); revRange.step=1000;
+
+    chgAbsRange.min=0; chgAbsRange.max=Math.max(10, Math.ceil(baseP*2)); chgAbsRange.step=1;
+
+    // 値とスライダーを同期（範囲外を補正）
+    const sync=(el,rg,dec=null)=>{
+      const v=toNum(el.value); if(isFinite(v)){ rg.value=Math.min(rg.max,Math.max(rg.min,v)); }
+      if(dec!==null) formatComma(el,dec); else formatComma(el);
+    };
+    sync(cost,costRange); sync(mrate,mrateRange); sync(qty,qtyRange,0); sync(revenue,revRange); sync(chgAbs,chgAbsRange);
+  }
+
+  // 入力取得
+  function getInputs(){
+    const P=toNum(price.value);
+    let m=null,C=null;
+    if(costMode==='cost'){ C=toNum(cost.value); if(isFinite(P)&&isFinite(C)&&P>0&&C>=0&&C<P){ m=(P-C)/P; } }
+    else{ const mr=toNum(mrate.value); if(isFinite(P)&&isFinite(mr)&&P>0&&mr>=0&&mr<100){ m=mr/100; C=P*(1-m); } }
+
+    let Q=null,R0=null;
+    if(volMode==='qty'){ Q=toNum(qty.value); if(isFinite(P)&&isFinite(Q)&&P>0&&Q>=0) R0=P*Q; }
+    else{ R0=toNum(revenue.value); if(isFinite(P)&&isFinite(R0)&&P>0&&R0>=0) Q=R0/P; }
+
+    let r=NaN, P2=NaN;
+    if(chgMode==='rate'){ r=toNum(chgPct.value)/100; if(!isFinite(r)) r=0; if(isFinite(P)) P2=P*(1+r); }
+    else{ P2=toNum(chgAbs.value); if(isFinite(P)&&isFinite(P2)&&P>0){ r=P2/P-1; } }
+
+    return {P,C,m,Q,R0,r,P2};
+  }
+
+  function clearSVG(svg){while(svg.firstChild)svg.removeChild(svg.firstChild);}
   function drawPairBar(svg,cur,req,isRev){
-    clearSVG(svg); if(!(isFinite(cur)&&isFinite(req))) return;
+    clearSVG(svg); if(!(isFinite(cur)&&isFinite(req)))return;
     const W=360,barH=18,gap=12,left=90,right=12;
     const maxVal=Math.max(cur,req)*1.1||1,scale=(W-left-right)/maxVal;
     const y1=18,y2=y1+barH+gap;
@@ -367,33 +377,14 @@
     const x=(r-(-m))/(0.3-(-m)); safetyBar.style.width=Math.min(100,Math.max(0,x*100)).toFixed(1)+'%';
   }
 
-  // ---- compute helpers ----
-  function getInputs(){
-    const P=toNum(price.value);
-    let m=null,C=null;
-    if(costMode==='cost'){ C=toNum(cost.value); if(isFinite(P)&&isFinite(C)&&P>0&&C>=0&&C<P){ m=(P-C)/P; } }
-    else{ const mr=toNum(mrate.value); if(isFinite(P)&&isFinite(mr)&&P>0&&mr>=0&&mr<100){ m=mr/100; C=P*(1-m); } }
-
-    let Q=null,R0=null;
-    if(volMode==='qty'){ Q=toNum(qty.value); if(isFinite(P)&&isFinite(Q)&&P>0&&Q>=0) R0=P*Q; }
-    else{ R0=toNum(revenue.value); if(isFinite(P)&&isFinite(R0)&&P>0&&R0>=0) Q=R0/P; }
-
-    let r=NaN, P2=NaN;
-    if(chgMode==='rate'){ r=toNum(chgPct.value)/100; if(!isFinite(r)) r=0; if(isFinite(P)) P2=P*(1+r); }
-    else{ P2=toNum(chgAbs.value); if(isFinite(P)&&isFinite(P2)&&P>0){ r=P2/P-1; } }
-
-    return {P,C,m,Q,R0,r,P2};
-  }
-
   function buildSensitivity(base,steps){
     const {P,C,Q,R0}=base, T0=(P-C)*Q; sensBody.innerHTML='';
     steps.forEach(s=>{
       const r=s/100, P2=P*(1+r), CM2=P2-C;
       let Qreq=NaN, Rreq=NaN, rr=NaN, rq=NaN;
-      if (CM2>0){ Qreq=T0/CM2; Rreq=P2*Qreq; rr=R0>0?(Rreq/R0-1):NaN; rq=Q>0?(Qreq/Q-1):NaN; }
+      if(CM2>0){ Qreq=T0/CM2; Rreq=P2*Qreq; rr=R0>0?(Rreq/R0-1):NaN; rq=Q>0?(Qreq/Q-1):NaN; }
       const tr=document.createElement('tr');
-      tr.innerHTML=`
-        <td>${s>0?'+':''}${s}%</td>
+      tr.innerHTML=`<td>${s>0?'+':''}${s}%</td>
         <td>${isFinite(Rreq)?yen(Rreq):'—'}</td>
         <td>${isFinite(rr)?(rr>=0?'+':'')+(rr*100).toFixed(1)+'%':'—'}</td>
         <td>${isFinite(Qreq)?(Math.round(Qreq*100)/100).toLocaleString('ja-JP')+' 単位':'—'}</td>
@@ -440,25 +431,21 @@
 担当：＿＿＿＿／TEL：＿＿＿＿／MAIL：＿＿＿＿
 `; }
 
-  // ---- main compute ----
   function compute(){
+    updateRanges();
+
     const {P,C,m,Q,R0,r,P2}=getInputs();
+    kpi_price2.textContent = isFinite(P2)?yen(P2):'—';
 
-    // 改定後単価表示 & 相互同期
-    if(isFinite(P2)){ kpi_price2.textContent=yen(P2); }
-    else { kpi_price2.textContent='—'; }
-
-    if(chgMode==='rate' && isFinite(P2)){ chgAbs.value = Math.round(P2).toLocaleString('ja-JP'); }
+    // 相互同期
+    if(chgMode==='rate' && isFinite(P2)){ chgAbs.value=Math.round(P2).toLocaleString('ja-JP'); chgAbsRange.value=toNum(chgAbs.value)||0; }
     if(chgMode==='abs' && isFinite(P) && isFinite(P2)){
-      const rCalc=(P2/P-1)*100;
-      chgPct.value=rCalc.toFixed(1).replace(/\.0$/,'');
+      const rCalc=(P2/P-1)*100; chgPct.value=rCalc.toFixed(1).replace(/\.0$/,'');
       chgRange.value=Math.max(-30,Math.min(30,Math.round(rCalc)));
     }
 
     [kpi_m,kpi_m2,kpi_reqRev,kpi_reqRevDiff,kpi_reqQty,kpi_reqQtyDiff].forEach(el=>{el.textContent='—';el.classList.remove('ok','warn');});
-    dangerMsg.style.display='none';
-    const clear = svg => {while(svg.firstChild) svg.removeChild(svg.firstChild);};
-    clear(revChart); clear(qtyChart);
+    dangerMsg.style.display='none'; clearSVG(revChart); clearSVG(qtyChart);
     [lgRevOk,lgRevOkLbl,lgRevWarn,lgRevWarnLbl,lgQtyOk,lgQtyOkLbl,lgQtyWarn,lgQtyWarnLbl].forEach(x=>x.style.display='none');
 
     if(!(isFinite(P)&&isFinite(C)&&isFinite(m)&&isFinite(Q)&&isFinite(R0)&&isFinite(P2)&&P>0&&C>=0&&C<P&&Q>=0&&R0>=0)){
@@ -471,7 +458,6 @@
     kpi_m.textContent=pct(m);
     kpi_m2.textContent=isFinite(m2)?pct(m2):'—';
     if(m2<=0||!isFinite(m2)){ dangerMsg.style.display='block'; dangerMsg.textContent='警告：この値引き率では限界利益が0以下（原価割れ）です。値引き率見直しや原価改善が必要です。'; kpi_m2.classList.add('warn'); }
-    else{ kpi_m2.classList.remove('warn'); }
 
     let Qreq,Rreq,dQ,dR;
     if(CM2>0){ Qreq=T0/CM2; Rreq=P2*Qreq; dQ=Qreq-Q; dR=Rreq-R0; }
@@ -480,55 +466,43 @@
       kpi_reqRev.textContent=yen(Rreq);
       const ratioR=R0>0?(Rreq/R0-1):0;
       kpi_reqRevDiff.textContent=(ratioR>=0?'現状比 +':'現状比 ')+(ratioR*100).toFixed(1)+'% （差額 '+yen(dR)+'）';
-      kpi_reqRev.classList.toggle('ok',ratioR<=0);
-      kpi_reqRev.classList.toggle('warn',ratioR>0&&P2<P);
+      kpi_reqRev.classList.toggle('ok',ratioR<=0); kpi_reqRev.classList.toggle('warn',ratioR>0&&P2<P);
     }
     if(isFinite(Qreq)){
       kpi_reqQty.textContent=(Math.round(Qreq*100)/100).toLocaleString('ja-JP')+' 単位';
       const ratioQ=Q>0?(Qreq/Q-1):0, sign=ratioQ>=0?'+':'';
       kpi_reqQtyDiff.textContent=`現状比 ${sign}${(ratioQ*100).toFixed(1)}% （差分 ${(Math.round(dQ*100)/100).toLocaleString('ja-JP')} 単位）`;
-      kpi_reqQty.classList.toggle('ok',ratioQ<=0);
-      kpi_reqQty.classList.toggle('warn',ratioQ>0&&P2<P);
+      kpi_reqQty.classList.toggle('ok',ratioQ<=0); kpi_reqQty.classList.toggle('warn',ratioQ>0&&P2<P);
     }
 
-    if(isFinite(Rreq)&&isFinite(Qreq)){
-      // draw charts
-      const dsvg=(svg)=>{while(svg.firstChild)svg.removeChild(svg.firstChild);};
-      dsvg(revChart); dsvg(qtyChart);
-      (function(svg,cur,req,isRev){ // inline to reuse previous drawPairBar without globals
-        const W=360,barH=18,gap=12,left=90,right=12;
-        const maxVal=Math.max(cur,req)*1.1||1,scale=(W-left-right)/maxVal;
-        const y1=18,y2=y1+barH+gap;
-        const Tx=(x,y,t,a='end')=>{const tx=document.createElementNS('http://www.w3.org/2000/svg','text');tx.setAttribute('x',x);tx.setAttribute('y',y);tx.setAttribute('fill','#374151');tx.setAttribute('font-size','11');tx.setAttribute('text-anchor',a);tx.textContent=t;svg.appendChild(tx);};
-        const Ln=(x1,y1,x2,y2,s='#f3f4f6')=>{const l=document.createElementNS('http://www.w3.org/2000/svg','line');l.setAttribute('x1',x1);l.setAttribute('y1',y1);l.setAttribute('x2',x2);l.setAttribute('y2',y2);l.setAttribute('stroke',s);l.setAttribute('stroke-width','1');svg.appendChild(l);};
-        Ln(left,y1-10,left,y2+barH+8,'#e5e7eb');[0.25,0.5,0.75,1].forEach(p=>{const xx=left+(W-left-right)*p;Ln(xx,y1-10,xx,y2+barH+8);});
-        Tx(left-8,y1+barH-5,'現状');Tx(left-8,y2+barH-5,'必要');
-        const wCur=Math.max(2,cur*scale),wReq=Math.max(2,req*scale),up=req>cur;
-        const R=(x,y,w,h,fill)=>{const r=document.createElementNS('http://www.w3.org/2000/svg','rect');r.setAttribute('x',x);r.setAttribute('y',y);r.setAttribute('width',w);r.setAttribute('height',h);r.setAttribute('rx','6');r.setAttribute('fill',fill);svg.appendChild(r);};
-        R(left,y1,wCur,barH,'var(--brand)'); R(left,y2,wReq,barH, up?'var(--warn)':'var(--ok)');
-        const fmt=isRev?(v)=>yen(v):(v)=>(Math.round(v*100)/100).toLocaleString('ja-JP')+' 単位';
-        Tx(left+wCur+6,y1+barH-5,fmt(cur),'start'); Tx(left+wReq+6,y2+barH-5,fmt(req),'start');
-        if(isRev){lgRevOk.style.display=up?'none':'inline-block';lgRevOkLbl.style.display=up?'none':'inline';lgRevWarn.style.display=up?'inline-block':'none';lgRevWarnLbl.style.display=up?'inline':'none';}
-        else{lgQtyOk.style.display=up?'none':'inline-block';lgQtyOkLbl.style.display=up?'none':'inline';lgQtyWarn.style.display=up?'inline-block':'none';lgQtyWarnLbl.style.display=up?'inline':'none';}
-      })(revChart,R0,Rreq,true);
-      (function(svg,cur,req){const W=360,barH=18,gap=12,left=90,right=12;const maxVal=Math.max(cur,req)*1.1||1,scale=(W-left-right)/maxVal;const y1=18,y2=y1+barH+gap;const Tx=(x,y,t,a='end')=>{const tx=document.createElementNS('http://www.w3.org/2000/svg','text');tx.setAttribute('x',x);tx.setAttribute('y',y);tx.setAttribute('fill','#374151');tx.setAttribute('font-size','11');tx.setAttribute('text-anchor',a);tx.textContent=t;svg.appendChild(tx);};const Ln=(x1,y1,x2,y2,s='#f3f4f6')=>{const l=document.createElementNS('http://www.w3.org/2000/svg','line');l.setAttribute('x1',x1);l.setAttribute('y1',y1);l.setAttribute('x2',x2);l.setAttribute('y2',y2);l.setAttribute('stroke',s);l.setAttribute('stroke-width','1');svg.appendChild(l);};Ln(left,y1-10,left,y2+barH+8,'#e5e7eb');[0.25,0.5,0.75,1].forEach(p=>{const xx=left+(W-left-right)*p;Ln(xx,y1-10,xx,y2+barH+8);});Tx(left-8,y1+barH-5,'現状');Tx(left-8,y2+barH-5,'必要');const wCur=Math.max(2,cur*scale),wReq=Math.max(2,req*scale),up=req>cur;const R=(x,y,w,h,fill)=>{const r=document.createElementNS('http://www.w3.org/2000/svg','rect');r.setAttribute('x',x);r.setAttribute('y',y);r.setAttribute('width',w);r.setAttribute('height',h);r.setAttribute('rx','6');r.setAttribute('fill',fill);svg.appendChild(r);};R(left,y1,wCur,barH,'var(--brand)');R(left,y2,wReq,barH,up?'var(--warn)':'var(--ok)');const fmt=v=>(Math.round(v*100)/100).toLocaleString('ja-JP')+' 単位';Tx(left+wCur+6,y1+barH-5,fmt(cur),'start');Tx(left+wReq+6,y2+barH-5,fmt(req),'start');lgQtyOk.style.display=up?'none':'inline-block';lgQtyOkLbl.style.display=up?'none':'inline';lgQtyWarn.style.display=up?'inline-block':'none';lgQtyWarnLbl.style.display=up?'inline':'none';})(qtyChart, Q, Qreq);
-    }
-
+    if(isFinite(Rreq)&&isFinite(Qreq)){ drawPairBar(revChart,R0,Rreq,true); drawPairBar(qtyChart,Q,Qreq,false); }
     buildSensitivity({P,C,m,Q,R0},[-10,-5,-1,1,5,10]);
     buildActions(rEff,m);
     buildTemplate({r:rEff,P,P2,R0,Rreq,Q,Qreq});
   }
 
-  // ---- events ----
-  const fmt=(el,dec=null)=> el.addEventListener('input',()=>{formatComma(el,dec);compute();});
-  [price,cost,mrate,qty,revenue,chgAbs].forEach(el=>fmt(el));
+  // 入力イベント（相互同期）
+  const bindSlider = (rangeEl, inputEl, dec=null) => {
+    rangeEl.addEventListener('input', ()=>{ inputEl.value = (dec===0?Math.round(rangeEl.value):rangeEl.value).toLocaleString('ja-JP'); compute(); });
+    inputEl.addEventListener('input', ()=>{ formatComma(inputEl,dec); const v=toNum(inputEl.value); if(isFinite(v)) rangeEl.value = Math.min(rangeEl.max, Math.max(rangeEl.min, v)); compute(); });
+  };
+  bindSlider(costRange, cost);
+  bindSlider(mrateRange, mrate);
+  bindSlider(qtyRange, qty, 0);
+  bindSlider(revRange, revenue);
+  bindSlider(chgAbsRange, chgAbs);
+
+  // 率入力
   chgRange.addEventListener('input',()=>{ chgPct.value=Number(chgRange.value).toLocaleString('ja-JP'); compute(); });
   chgPct.addEventListener('input',()=>{ let v=parseFloat(String(chgPct.value).replace(/,/g,'')); if(!isFinite(v)) v=0; v=Math.min(300,Math.max(-90,v)); chgPct.value=v.toLocaleString('ja-JP'); chgRange.value=Math.max(-30,Math.min(30,Math.round(v))); compute(); });
 
+  // 単価・他
+  price.addEventListener('input',()=>{ formatComma(price); updateRanges(); compute(); });
+
   // チップ切替
-  function setCostMode(mode){ costMode=mode; if(mode==='cost'){ chipCost.classList.add('active'); chipMrate.classList.remove('active'); blockCost.style.display=''; blockMrate.style.display='none'; } else { chipMrate.classList.add('active'); chipCost.classList.remove('active'); blockCost.style.display='none'; blockMrate.style.display=''; } compute(); }
-  function setVolMode(mode){ volMode=mode; if(mode==='qty'){ chipQty.classList.add('active'); chipRev.classList.remove('active'); blockQty.style.display=''; blockRev.style.display='none'; } else { chipRev.classList.add('active'); chipQty.classList.remove('active'); blockQty.style.display='none'; blockRev.style.display=''; } compute(); }
-  function setChgMode(mode){ chgMode=mode; if(mode==='rate'){ chipRate.classList.add('active'); chipAbs.classList.remove('active'); rateInputs.style.display='block'; absInputs.style.display='none'; } else { chipAbs.classList.add('active'); chipRate.classList.remove('active'); rateInputs.style.display='none'; absInputs.style.display='block'; } compute(); }
+  function setCostMode(mode){ costMode=mode; if(mode==='cost'){ chipCost.classList.add('active'); chipMrate.classList.remove('active'); blockCost.style.display=''; blockMrate.style.display='none'; } else { chipMrate.classList.add('active'); chipCost.classList.remove('active'); blockCost.style.display='none'; blockMrate.style.display=''; } updateRanges(); compute(); }
+  function setVolMode(mode){ volMode=mode; if(mode==='qty'){ chipQty.classList.add('active'); chipRev.classList.remove('active'); blockQty.style.display=''; blockRev.style.display='none'; } else { chipRev.classList.add('active'); chipQty.classList.remove('active'); blockQty.style.display='none'; blockRev.style.display=''; } updateRanges(); compute(); }
+  function setChgMode(mode){ chgMode=mode; if(mode==='rate'){ chipRate.classList.add('active'); chipAbs.classList.remove('active'); document.getElementById('rateInputs').style.display='block'; document.getElementById('absInputs').style.display='none'; } else { chipAbs.classList.add('active'); chipRate.classList.remove('active'); document.getElementById('rateInputs').style.display='none'; document.getElementById('absInputs').style.display='block'; } updateRanges(); compute(); }
 
   chipCost.addEventListener('click',()=>setCostMode('cost'));
   chipMrate.addEventListener('click',()=>setCostMode('mrate'));
@@ -538,35 +512,25 @@
   chipAbs.addEventListener('click',()=>setChgMode('abs'));
 
   // サンプル／リセット
-  sampleBtn.addEventListener('click',()=>{
+  document.getElementById('sampleBtn').addEventListener('click',()=>{
     setCostMode('cost'); setVolMode('qty'); setChgMode('rate');
-    price.value='1,200'; cost.value='720'; qty.value='1,000'; chgRange.value=-5; chgPct.value='-5'; chgAbs.value='';
+    price.value='1,200'; cost.value='720'; qty.value='1,000';
+    chgRange.value=-5; chgPct.value='-5'; chgAbs.value='';
+    updateRanges();
+    costRange.value=toNum(cost.value); qtyRange.value=toNum(qty.value);
     compute();
   });
-  resetBtn.addEventListener('click',()=>{
+  document.getElementById('resetBtn').addEventListener('click',()=>{
     [price,cost,mrate,qty,revenue,chgPct,chgAbs].forEach(el=>el.value='');
-    chgRange.value=0; chgPct.value='0';
-    setCostMode('cost'); setVolMode('qty'); setChgMode('rate');
-    compute();
+    chgRange.value=0; chgPct.value='0'; setCostMode('cost'); setVolMode('qty'); setChgMode('rate');
+    updateRanges(); compute();
   });
-
-  copyResultBtn.addEventListener('click',()=>{
-    const txt=`［価格改定検討ツール／試算結果］
-改定後単価：${kpi_price2.textContent}
-現状m：${kpi_m.textContent}
-改定後m：${kpi_m2.textContent}
-必要売上（同じ限界利益額）：${kpi_reqRev.textContent}（${kpi_reqRevDiff.textContent}）
-必要数量（同じ限界利益額）：${kpi_reqQty.textContent}（${kpi_reqQtyDiff.textContent}）`;
-    navigator.clipboard.writeText(txt).then(()=>alert('結果をコピーしました')).catch(()=>alert('コピーに失敗しました'));
-  });
-  copyTemplateBtn.addEventListener('click',()=>{ navigator.clipboard.writeText(templateArea.value||'').then(()=>alert('テンプレをコピーしました')).catch(()=>alert('コピーに失敗しました')); });
 
   // 印刷
-  function handlePrint(){ try{ if(typeof window.print==='function'){ window.print(); return; } }catch(e){} }
-  printBtn.addEventListener('click', handlePrint);
+  document.getElementById('printBtn').addEventListener('click',()=>{ try{ if(typeof window.print==='function'){ window.print(); } }catch(e){} });
 
-  // init
   relocateActions();
+  updateRanges();
   compute();
 })();
 </script>
