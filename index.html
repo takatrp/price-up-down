@@ -3,14 +3,18 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>価格改定検討ツール r8</title>
+<title>価格改定検討ツール r9</title>
 <style>
   :root{--brand:#578899;--ink:#1f2937;--muted:#6b7280;--bg:#f7fafc;--ok:#10b981;--warn:#ef4444;--card:#fff;--grid:#e5e7eb;}
   html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Hiragino Kaku Gothic ProN","Yu Gothic","Meiryo",sans-serif;}
   .wrap{max-width:1100px;margin:0 auto;padding:12px}
-  .title{font-weight:800;font-size:1.2rem;margin:6px 0 8px;color:#0f172a}
+
+  /* ヘッダー */
+  .header{display:flex;align-items:center;gap:10px;margin:6px 0 8px}
+  .logo{height:28px;width:auto;object-fit:contain;border-radius:6px}
+  .title{font-weight:800;font-size:1.2rem;color:#0f172a}
+  .badge{display:inline-block;padding:3px 8px;border-radius:8px;background:#eef6fa;color:#578899;font-weight:700;font-size:.82rem;margin-left:6px;vertical-align:middle}
   .sub{font-size:.85rem;color:var(--muted);margin:0 0 8px}
-  .badge{display:inline-block;padding:3px 8px;border-radius:8px;background:#eef6fa;color:#578899;font-weight:700;font-size:.82rem}
 
   /* カード */
   .card{background:var(--card);border-radius:12px;box-shadow:0 2px 10px rgba(0,0,0,.06);padding:12px}
@@ -20,6 +24,7 @@
   label{display:block;font-size:.86rem;color:#374151;margin:6px 0 6px;font-weight:600}
   input[type="text"],select,textarea{width:100%;box-sizing:border-box;border:1px solid #e5e7eb;border-radius:10px;padding:10px;font-size:1rem;background:#fff;outline:none}
   input:focus,select:focus,textarea:focus{border-color:var(--brand);box-shadow:0 0 0 3px rgba(87,136,153,.15)}
+  .primaryInput{border:2px solid var(--brand)!important;background:#f3f8fb}
   .hint{font-size:.76rem;color:var(--muted);margin-top:4px}
   .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;background:var(--brand);color:#fff;border:none;border-radius:10px;padding:10px 12px;font-weight:700;font-size:.92rem}
   .btn.alt{background:#e5e7eb;color:#111827}
@@ -52,11 +57,22 @@
   .lg{display:inline-block;width:14px;height:10px;border-radius:3px}
   .lg.cur{background:var(--brand)} .lg.req.ok{background:var(--ok)} .lg.req.warn{background:var(--warn)}
 
-  /* レイアウト：モバイル=1カラム、PC=2カラム（左右を独立スタック） */
-  .dashboard{display:block}
-  .colL,.colR{display:flex;flex-direction:column;gap:10px}
+  /* STEP2のチップ切替 */
+  .chipGroup{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;margin-bottom:2px}
+  .chip{border:1px solid #d1d5db;background:#fff;border-radius:999px;padding:6px 10px;font-size:.85rem;font-weight:700;color:#374151;cursor:pointer}
+  .chip.active{border-color:var(--brand);background:#eef6fa;color:#0f172a}
+
+  /* レイアウト：左右スタック（PC）／1カラム（SP） */
+  .dashboard{display:grid;gap:10px}
   @media (min-width:1024px){
-    .dashboard{display:grid;grid-template-columns:380px 1fr;gap:10px}
+    .dashboard{grid-template-columns:380px 1fr;align-items:start}
+    .step1{grid-column:1}
+    .step2{grid-column:1}
+    .actions{grid-column:1}
+    .result{grid-column:2}
+    .graph{grid-column:2}
+    .sens{grid-column:2}
+    .template{grid-column:2}
   }
 
   /* フッター・印刷 */
@@ -67,165 +83,184 @@
 </head>
 <body>
 <div class="wrap">
-  <div class="title">価格改定検討ツール <span class="badge">r8</span></div>
+  <!-- ヘッダー（ロゴ＋タイトル） -->
+  <div class="header">
+    <img src="ロゴ.jpg" alt="ロゴ" class="logo">
+    <div class="title">価格改定検討ツール <span class="badge">r9</span></div>
+  </div>
   <div class="sub">値引き/値上げの「現場インパクト」を<b>限界利益</b>で数値化＆グラフ化。</div>
 
   <div class="dashboard">
-    <!-- 左カラム -->
-    <div class="colL">
-      <div class="card">
-        <div class="pill">STEP 1：現状を入力</div>
-        <div class="row">
-          <div class="col">
-            <label>入力方式（原価 or 限界利益率）</label>
-            <select id="costMode">
-              <option value="cost">単価 ＋ 原価（変動費）</option>
-              <option value="mrate">単価 ＋ 限界利益率</option>
-            </select>
-          </div>
-          <div class="col">
-            <label>数量入力 or 売上高入力</label>
-            <select id="volMode">
-              <option value="qty">数量で入力</option>
-              <option value="rev">売上高で入力</option>
-            </select>
-          </div>
+    <!-- STEP1 -->
+    <div class="card step1">
+      <div class="pill">STEP 1：現状を入力</div>
+      <div class="row">
+        <div class="col">
+          <label>入力方式（原価 or 限界利益率）</label>
+          <select id="costMode">
+            <option value="cost">単価 ＋ 原価（変動費）</option>
+            <option value="mrate">単価 ＋ 限界利益率</option>
+          </select>
         </div>
-
-        <div class="row">
-          <div class="col">
-            <label>現在の単価（税抜）</label>
-            <input type="text" id="price" inputmode="decimal" placeholder="例）1,200" />
-            <div class="hint">P</div>
-          </div>
-          <div class="col" id="costBlock">
-            <label>1単位あたり原価（変動費）</label>
-            <input type="text" id="cost" inputmode="decimal" placeholder="例）720" />
-            <div class="hint">C（数量に比例する費用）</div>
-          </div>
-          <div class="col" id="mrateBlock" style="display:none">
-            <label>限界利益率（%）</label>
-            <input type="text" id="mrate" inputmode="decimal" placeholder="例）40" />
-            <div class="hint">m = (単価−原価)/単価</div>
-          </div>
-        </div>
-
-        <div class="row" id="qtyRow">
-          <div class="col">
-            <label>月間販売数量（単位）</label>
-            <input type="text" id="qty" inputmode="numeric" placeholder="例）1,000" />
-          </div>
-        </div>
-        <div class="row" id="revRow" style="display:none">
-          <div class="col">
-            <label>月間売上高（税抜）</label>
-            <input type="text" id="revenue" inputmode="decimal" placeholder="例）1,200,000" />
-          </div>
-        </div>
-
-        <div class="hint">※固定費は扱いません（「同じ限界利益額を維持するために必要な売上/数量」を算出）。</div>
-
-        <div class="toolbar">
-          <button class="btn alt" id="sampleBtn" type="button">サンプル読込</button>
-          <button class="btn alt" id="resetBtn" type="button">リセット</button>
+        <div class="col">
+          <label>数量入力 or 売上高入力</label>
+          <select id="volMode">
+            <option value="qty">数量で入力</option>
+            <option value="rev">売上高で入力</option>
+          </select>
         </div>
       </div>
 
-      <div class="card">
-        <div class="pill">STEP 2：値改定を設定</div>
+      <div class="row">
+        <div class="col">
+          <label>現在の単価（税抜）</label>
+          <input type="text" id="price" class="primaryInput" inputmode="decimal" placeholder="例）1,200" />
+        </div>
+        <div class="col" id="costBlock">
+          <label>1単位あたり原価（変動費）</label>
+          <input type="text" id="cost" inputmode="decimal" placeholder="例）720" />
+        </div>
+        <div class="col" id="mrateBlock" style="display:none">
+          <label>限界利益率（%）</label>
+          <input type="text" id="mrate" inputmode="decimal" placeholder="例）40" />
+        </div>
+      </div>
+
+      <div class="row" id="qtyRow">
+        <div class="col">
+          <label>月間販売数量（単位）</label>
+          <input type="text" id="qty" inputmode="numeric" placeholder="例）1,000" />
+        </div>
+      </div>
+      <div class="row" id="revRow" style="display:none">
+        <div class="col">
+          <label>月間売上高（税抜）</label>
+          <input type="text" id="revenue" inputmode="decimal" placeholder="例）1,200,000" />
+        </div>
+      </div>
+
+      <div class="hint">※固定費は扱いません（「同じ限界利益額を維持するために必要な売上/数量」を算出）。</div>
+
+      <div class="toolbar">
+        <button class="btn alt" id="sampleBtn" type="button">サンプル読込</button>
+        <button class="btn alt" id="resetBtn" type="button">リセット</button>
+      </div>
+    </div>
+
+    <!-- STEP2：チップ切替 -->
+    <div class="card step2">
+      <div class="pill">STEP 2：値改定を設定</div>
+
+      <div class="chipGroup" role="tablist" aria-label="改定方法の選択">
+        <button class="chip active" id="chipRate" type="button" aria-selected="true">値改定率</button>
+        <button class="chip" id="chipAbs" type="button" aria-selected="false">改定後単価（直接）</button>
+      </div>
+
+      <!-- 率入力 -->
+      <div id="rateInputs">
         <label>値改定率（%） <span class="hint">マイナス=値引き、プラス=値上げ</span></label>
         <div class="slider">
           <input type="range" id="chgRange" min="-30" max="30" step="1" value="0" />
           <input type="text" id="chgPct" style="width:110px" inputmode="decimal" value="0" />
           <span class="hint">%</span>
         </div>
-        <div class="hint">安全域インジケータ</div>
-        <div class="bar"><span id="safetyBar"></span></div>
-        <div class="hint" style="margin-top:6px">※限界利益率 m に対し、値引き率が −m を超えると原価割れ（利益ゼロ以下）。</div>
       </div>
 
-      <div class="card">
-        <div class="pill">今日やる3アクション</div>
-        <ol id="actions" style="margin-top:6px;padding-left:20px"></ol>
+      <!-- 直接額入力 -->
+      <div id="absInputs" style="display:none">
+        <label>改定後単価（税抜）</label>
+        <input type="text" id="chgAbs" inputmode="decimal" placeholder="例）1,140" />
+      </div>
+
+      <div class="hint" style="margin-top:6px">安全域インジケータ</div>
+      <div class="bar"><span id="safetyBar"></span></div>
+      <div class="hint" style="margin-top:6px">※限界利益率 m に対し、値引き率が −m を超えると原価割れ（利益ゼロ以下）。</div>
+    </div>
+
+    <!-- 結果 -->
+    <div class="card result" id="resultCard">
+      <div class="pill">結果</div>
+      <div class="kpi">
+        <div class="item"><div class="lbl">改定後単価</div><div class="val" id="kpi_price2">—</div></div>
+        <div class="item"><div class="lbl">現状の限界利益率</div><div class="val" id="kpi_m">—</div></div>
+        <div class="item"><div class="lbl">値改定後の限界利益率</div><div class="val" id="kpi_m2">—</div></div>
+        <div class="item">
+          <div class="lbl">同じ限界利益額を維持するための必要売上</div>
+          <div class="val" id="kpi_reqRev">—</div>
+          <div class="hint" id="kpi_reqRevDiff"></div>
+        </div>
+        <div class="item">
+          <div class="lbl">同じ限界利益額を維持するための必要数量</div>
+          <div class="val" id="kpi_reqQty">—</div>
+          <div class="hint" id="kpi_reqQtyDiff"></div>
+        </div>
+      </div>
+      <div id="dangerMsg" class="danger" style="display:none"></div>
+    </div>
+
+    <!-- グラフ -->
+    <div class="card graph">
+      <div class="pill">グラフで確認</div>
+      <div class="chartWrap">
+        <div>
+          <div class="hint">売上：現状 vs 必要（同じ限界利益額を維持）</div>
+          <div class="chart"><svg id="revChart" viewBox="0 0 360 100" preserveAspectRatio="none"></svg></div>
+          <div class="legend">
+            <span class="lg cur"></span>現状
+            <span class="lg req ok" id="lgRevOk" style="display:none"></span><span id="lgRevOkLbl" style="display:none">必要（下降＝楽）</span>
+            <span class="lg req warn" id="lgRevWarn" style="display:none"></span><span id="lgRevWarnLbl" style="display:none">必要（上昇＝厳）</span>
+          </div>
+        </div>
+        <div>
+          <div class="hint">数量：現状 vs 必要（同じ限界利益額を維持）</div>
+          <div class="chart"><svg id="qtyChart" viewBox="0 0 360 100" preserveAspectRatio="none"></svg></div>
+          <div class="legend">
+            <span class="lg cur"></span>現状
+            <span class="lg req ok" id="lgQtyOk" style="display:none"></span><span id="lgQtyOkLbl" style="display:none">必要（下降＝楽）</span>
+            <span class="lg req warn" id="lgQtyWarn" style="display:none"></span><span id="lgQtyWarnLbl" style="display:none">必要（上昇＝厳）</span>
+          </div>
+        </div>
       </div>
     </div>
 
-    <!-- 右カラム -->
-    <div class="colR">
-      <div class="card" id="resultCard">
-        <div class="pill">結果</div>
-        <div class="kpi">
-          <div class="item"><div class="lbl">改定後単価</div><div class="val" id="kpi_price2">—</div></div>
-          <div class="item"><div class="lbl">現状の限界利益率</div><div class="val" id="kpi_m">—</div></div>
-          <div class="item"><div class="lbl">値改定後の限界利益率</div><div class="val" id="kpi_m2">—</div></div>
-          <div class="item">
-            <div class="lbl">同じ限界利益額を維持するための必要売上</div>
-            <div class="val" id="kpi_reqRev">—</div>
-            <div class="hint" id="kpi_reqRevDiff"></div>
-          </div>
-          <div class="item">
-            <div class="lbl">同じ限界利益額を維持するための必要数量</div>
-            <div class="val" id="kpi_reqQty">—</div>
-            <div class="hint" id="kpi_reqQtyDiff"></div>
-          </div>
-        </div>
-        <div id="dangerMsg" class="danger" style="display:none"></div>
+    <!-- 感度表 -->
+    <div class="card sens" id="sensCard">
+      <div class="pill">感度（±1/±5/±10% の値改定時）</div>
+      <div class="hint">「現状と同じ限界利益額を維持するために必要な売上/数量（比較）」</div>
+      <div style="overflow:auto">
+        <table class="table" id="sensTable">
+          <thead><tr><th>改定率</th><th>必要売上</th><th>現状比</th><th>必要数量</th><th>現状比</th></tr></thead>
+          <tbody></tbody>
+        </table>
       </div>
+    </div>
 
-      <div class="card">
-        <div class="pill">グラフで確認</div>
-        <div class="chartWrap">
-          <div>
-            <div class="hint">売上：現状 vs 必要（同じ限界利益額を維持）</div>
-            <div class="chart"><svg id="revChart" viewBox="0 0 360 100" preserveAspectRatio="none"></svg></div>
-            <div class="legend">
-              <span class="lg cur"></span>現状
-              <span class="lg req ok" id="lgRevOk" style="display:none"></span><span id="lgRevOkLbl" style="display:none">必要（下降＝楽）</span>
-              <span class="lg req warn" id="lgRevWarn" style="display:none"></span><span id="lgRevWarnLbl" style="display:none">必要（上昇＝厳）</span>
-            </div>
-          </div>
-          <div>
-            <div class="hint">数量：現状 vs 必要（同じ限界利益額を維持）</div>
-            <div class="chart"><svg id="qtyChart" viewBox="0 0 360 100" preserveAspectRatio="none"></svg></div>
-            <div class="legend">
-              <span class="lg cur"></span>現状
-              <span class="lg req ok" id="lgQtyOk" style="display:none"></span><span id="lgQtyOkLbl" style="display:none">必要（下降＝楽）</span>
-              <span class="lg req warn" id="lgQtyWarn" style="display:none"></span><span id="lgQtyWarnLbl" style="display:none">必要（上昇＝厳）</span>
-            </div>
-          </div>
-        </div>
-      </div>
+    <!-- アクション（SPでは感度の下へ移動） -->
+    <div class="card actions" id="actionsCard">
+      <div class="pill">今日やる3アクション</div>
+      <ol id="actions" style="margin-top:6px;padding-left:20px"></ol>
+    </div>
 
-      <div class="card">
-        <div class="pill">感度（±1/±5/±10% の値改定時）</div>
-        <div class="hint">「現状と同じ限界利益額を維持するために必要な売上/数量（比較）」</div>
-        <div style="overflow:auto">
-          <table class="table" id="sensTable">
-            <thead><tr><th>改定率</th><th>必要売上</th><th>現状比</th><th>必要数量</th><th>現状比</th></tr></thead>
-            <tbody></tbody>
-          </table>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="pill">顧客向け告知テンプレ（メール/店頭/見積書注記）</div>
-        <div class="hint">値改定の背景・時期・影響を自動差し込み。必要に応じて修正してください。</div>
-        <textarea class="area" id="templateArea" style="min-height:120px"></textarea>
-        <div class="toolbar">
-          <button class="btn" id="copyResultBtn" type="button">結果をコピー</button>
-          <button class="btn" id="copyTemplateBtn" type="button">テンプレをコピー</button>
-          <button class="btn alt" id="printBtn" type="button">印刷</button>
-        </div>
+    <!-- 告知テンプレ -->
+    <div class="card template">
+      <div class="pill">顧客向け告知テンプレ（メール/店頭/見積書注記）</div>
+      <div class="hint">値改定の背景・時期・影響を自動差し込み。必要に応じて修正してください。</div>
+      <textarea class="area" id="templateArea" style="min-height:120px"></textarea>
+      <div class="toolbar">
+        <button class="btn" id="copyResultBtn" type="button">結果をコピー</button>
+        <button class="btn" id="copyTemplateBtn" type="button">テンプレをコピー</button>
+        <button class="btn alt" id="printBtn" type="button">印刷</button>
       </div>
     </div>
   </div>
 
-  <div class="credit">Copyright (c) 2025 税理士法人松本会計事務所 All Rights Reserved. / r8</div>
+  <div class="credit">Copyright (c) 2025 税理士法人松本会計事務所 All Rights Reserved. / r9</div>
   <div class="note">本ツールは管理会計上の試算です。実際の価格変更は取引条件・競合状況・需要弾力性等も併せてご判断ください。</div>
 </div>
 
 <script>
 (function(){
+  // ===== 便利関数 =====
   const yen = n => isFinite(n) ? new Intl.NumberFormat('ja-JP',{style:'currency',currency:'JPY',maximumFractionDigits:0}).format(n) : '—';
   const pct = x => isFinite(x) ? (x*100).toFixed(1).replace(/\.0$/,'') + '%' : '—';
   const clamp=(v,min,max)=>Math.min(max,Math.max(min,v));
@@ -235,6 +270,7 @@
     else if(typeof dec==='number')el.value=n.toLocaleString('ja-JP',{minimumFractionDigits:dec,maximumFractionDigits:dec});
     else{const raw=String(el.value).replace(/,/g,'');const hasDot=raw.includes('.');el.value=hasDot?n.toLocaleString('ja-JP',{maximumFractionDigits:6}):Math.round(n).toLocaleString('ja-JP');}}
 
+  // ===== DOM =====
   const costMode=document.getElementById('costMode');
   const volMode=document.getElementById('volMode');
   const price=document.getElementById('price');
@@ -242,8 +278,16 @@
   const mrate=document.getElementById('mrate');
   const qty=document.getElementById('qty');
   const revenue=document.getElementById('revenue');
+
+  const chipRate=document.getElementById('chipRate');
+  const chipAbs=document.getElementById('chipAbs');
+  const rateInputs=document.getElementById('rateInputs');
+  const absInputs=document.getElementById('absInputs');
   const chgRange=document.getElementById('chgRange');
   const chgPct=document.getElementById('chgPct');
+  const chgAbs=document.getElementById('chgAbs');
+  let chgMode='rate'; // 'rate' or 'abs'
+
   const safetyBar=document.getElementById('safetyBar');
 
   const kpi_price2=document.getElementById('kpi_price2');
@@ -281,6 +325,28 @@
   const lgQtyWarn=document.getElementById('lgQtyWarn');
   const lgQtyWarnLbl=document.getElementById('lgQtyWarnLbl');
 
+  // スマホ時のみ「アクション」を感度の下に移動
+  function relocateActions(){
+    const isMobile = window.matchMedia('(max-width:1023px)').matches;
+    const actionsCard = document.getElementById('actionsCard');
+    const sensCard = document.getElementById('sensCard');
+    const dashboard = document.querySelector('.dashboard');
+    if(isMobile){
+      // 感度の直後へ
+      if (actionsCard.previousElementSibling !== sensCard) {
+        sensCard.insertAdjacentElement('afterend', actionsCard);
+      }
+    }else{
+      // PCでは step2 の直後（左列）に戻す
+      const step2 = document.querySelector('.step2');
+      if (actionsCard.previousElementSibling !== step2) {
+        step2.insertAdjacentElement('afterend', actionsCard);
+      }
+    }
+  }
+  window.addEventListener('resize', relocateActions);
+
+  // 入力取得
   function getInputs(){
     const P=toNum(price.value);
     let m=null,C=null;
@@ -289,10 +355,19 @@
     let Q=null,R0=null;
     if(volMode.value==='qty'){Q=toNum(qty.value);if(isFinite(P)&&isFinite(Q)&&P>0&&Q>=0)R0=P*Q;}
     else{R0=toNum(revenue.value);if(isFinite(P)&&isFinite(R0)&&P>0&&R0>=0)Q=R0/P;}
-    let r=toNum(chgPct.value)/100;if(!isFinite(r))r=0;
-    return {P,C,m,Q,R0,r};
+
+    let r=NaN, P2=NaN;
+    if(chgMode==='rate'){
+      r=toNum(chgPct.value)/100; if(!isFinite(r)) r=0;
+      if(isFinite(P)) P2=P*(1+r);
+    }else{
+      P2=toNum(chgAbs.value);
+      if(isFinite(P)&&isFinite(P2)&&P>0){ r=P2/P-1; }
+    }
+    return {P,C,m,Q,R0,r,P2};
   }
 
+  // グラフ
   function clearSVG(svg){while(svg.firstChild)svg.removeChild(svg.firstChild);}
   function drawPairBar(svg,cur,req,isRev){
     clearSVG(svg); if(!(isFinite(cur)&&isFinite(req)))return;
@@ -312,61 +387,77 @@
     else{lgQtyOk.style.display=up?'none':'inline-block';lgQtyOkLbl.style.display=up?'none':'inline';lgQtyWarn.style.display=up?'inline-block':'none';lgQtyWarnLbl.style.display=up?'inline':'none';}
   }
 
+  // 安全ゲージ
   function safetyGauge(m,r){
     if(!isFinite(m)){safetyBar.style.width='0%';return;}
     const x=(r-(-m))/(0.3-(-m)); safetyBar.style.width=Math.min(100,Math.max(0,x*100)).toFixed(1)+'%';
   }
 
+  // 計算本体
   function compute(){
-    const {P,C,m,Q,R0,r}=getInputs();
-    kpi_price2.textContent=isFinite(P)?yen(P*(1+(isFinite(r)?r:0))):'—';
+    const {P,C,m,Q,R0,r,P2:inputP2}=getInputs();
+
+    // 表示用 改定後単価
+    const P2 = (chgMode==='abs' && isFinite(inputP2)) ? inputP2 : (isFinite(P)&&isFinite(r)? P*(1+r) : NaN);
+    kpi_price2.textContent = isFinite(P2) ? yen(P2) : '—';
+
+    // 率↔額の相互同期（ユーザビリティ）
+    if(chgMode==='rate' && isFinite(P2)){ chgAbs.value = Math.round(P2).toLocaleString('ja-JP'); }
+    if(chgMode==='abs' && isFinite(P) && isFinite(P2)){
+      const rCalc = (P2/P - 1)*100;
+      chgPct.value = rCalc.toFixed(1).replace(/\.0$/,'');
+      chgRange.value = Math.max(-30, Math.min(30, Math.round(rCalc)));
+    }
 
     [kpi_m,kpi_m2,kpi_reqRev,kpi_reqRevDiff,kpi_reqQty,kpi_reqQtyDiff].forEach(el=>{el.textContent='—';el.classList.remove('ok','warn');});
     dangerMsg.style.display='none'; clearSVG(revChart); clearSVG(qtyChart);
     [lgRevOk,lgRevOkLbl,lgRevWarn,lgRevWarnLbl,lgQtyOk,lgQtyOkLbl,lgQtyWarn,lgQtyWarnLbl].forEach(x=>x.style.display='none');
 
-    if(!(isFinite(P)&&isFinite(C)&&isFinite(m)&&isFinite(Q)&&isFinite(R0)&&P>0&&C>=0&&C<P&&Q>=0&&R0>=0)){
+    if (!(isFinite(P)&&isFinite(C)&&isFinite(m)&&isFinite(Q)&&isFinite(R0)&&isFinite(P2)&&P>0&&C>=0&&C<P&&Q>=0&&R0>=0)){
       safetyBar.style.width='0%'; sensBody.innerHTML=''; actions.innerHTML=''; templateArea.value=''; return;
     }
 
-    const P2=P*(1+r), CM=P-C, CM2=P2-C, m2=CM2/P2, T0=CM*Q;
-    safetyGauge(m,r);
+    const CM=P-C, CM2=P2-C, m2=CM2/P2, T0=CM*Q;
+    safetyGauge(m, (P2/P - 1));
 
     kpi_m.textContent=pct(m);
     kpi_m2.textContent=isFinite(m2)?pct(m2):'—';
-    if(m2<=0||!isFinite(m2)){dangerMsg.style.display='block';dangerMsg.textContent='警告：この値引き率では限界利益が0以下（原価割れ）です。値引き率見直しや原価改善が必要です。';kpi_m2.classList.add('warn');}
-    else{kpi_m2.classList.remove('warn');}
+    if (m2<=0 || !isFinite(m2)){ dangerMsg.style.display='block'; dangerMsg.textContent='警告：この値引き率では限界利益が0以下（原価割れ）です。値引き率見直しや原価改善が必要です。'; kpi_m2.classList.add('warn'); }
+    else{ kpi_m2.classList.remove('warn'); }
 
-    let Qreq,Rreq,dQ,dR;
-    if(CM2>0){Qreq=T0/CM2;Rreq=P2*Qreq;dQ=Qreq-Q;dR=Rreq-R0;}
+    let Qreq, Rreq, dQ, dR;
+    if (CM2>0){ Qreq=T0/CM2; Rreq=P2*Qreq; dQ=Qreq-Q; dR=Rreq-R0; }
 
-    if(isFinite(Rreq)){
+    if (isFinite(Rreq)){
       kpi_reqRev.textContent=yen(Rreq);
       const ratioR=R0>0?(Rreq/R0-1):0;
       kpi_reqRevDiff.textContent=(ratioR>=0?'現状比 +':'現状比 ')+(ratioR*100).toFixed(1)+'% （差額 '+yen(dR)+'）';
-      kpi_reqRev.classList.toggle('ok',ratioR<=0); kpi_reqRev.classList.toggle('warn',ratioR>0&&r<0);
+      kpi_reqRev.classList.toggle('ok', ratioR<=0);
+      kpi_reqRev.classList.toggle('warn', ratioR>0 && (P2<P)); // 値引きで増えるなら厳
     }
-    if(isFinite(Qreq)){
+    if (isFinite(Qreq)){
       kpi_reqQty.textContent=(Math.round(Qreq*100)/100).toLocaleString('ja-JP')+' 単位';
       const ratioQ=Q>0?(Qreq/Q-1):0, sign=ratioQ>=0?'+':'';
       kpi_reqQtyDiff.textContent=`現状比 ${sign}${(ratioQ*100).toFixed(1)}% （差分 ${(Math.round(dQ*100)/100).toLocaleString('ja-JP')} 単位）`;
-      kpi_reqQty.classList.toggle('ok',ratioQ<=0); kpi_reqQty.classList.toggle('warn',ratioQ>0&&r<0);
+      kpi_reqQty.classList.toggle('ok', ratioQ<=0);
+      kpi_reqQty.classList.toggle('warn', ratioQ>0 && (P2<P));
     }
 
-    if(isFinite(Rreq)&&isFinite(Qreq)){drawPairBar(revChart,R0,Rreq,true);drawPairBar(qtyChart,Q,Qreq,false);}
+    if (isFinite(Rreq)&&isFinite(Qreq)){ drawPairBar(revChart,R0,Rreq,true); drawPairBar(qtyChart,Q,Qreq,false); }
     buildSensitivity({P,C,m,Q,R0},[-10,-5,-1,1,5,10]);
-    buildActions(r,m);
-    buildTemplate({r,P,P2,m,m2,R0,Rreq,Q,Qreq});
+    buildActions((P2/P - 1),m);
+    buildTemplate({r:(P2/P - 1),P,P2,m,m2,R0,Rreq,Q,Qreq});
   }
 
   function buildSensitivity(base,steps){
-    const {P,C,Q,R0}=base,T0=(P-C)*Q; sensBody.innerHTML='';
+    const {P,C,Q,R0}=base, T0=(P-C)*Q; sensBody.innerHTML='';
     steps.forEach(s=>{
-      const r=s/100,P2=P*(1+r),CM2=P2-C;
-      let Qreq=NaN,Rreq=NaN,rr=NaN,rq=NaN;
-      if(CM2>0){Qreq=T0/CM2;Rreq=P2*Qreq;rr=R0>0?(Rreq/R0-1):NaN;rq=Q>0?(Qreq/Q-1):NaN;}
+      const r=s/100, P2=P*(1+r), CM2=P2-C;
+      let Qreq=NaN, Rreq=NaN, rr=NaN, rq=NaN;
+      if (CM2>0){ Qreq=T0/CM2; Rreq=P2*Qreq; rr=R0>0?(Rreq/R0-1):NaN; rq=Q>0?(Qreq/Q-1):NaN; }
       const tr=document.createElement('tr');
-      tr.innerHTML=`<td>${s>0?'+':''}${s}%</td>
+      tr.innerHTML=`
+        <td>${s>0?'+':''}${s}%</td>
         <td>${isFinite(Rreq)?yen(Rreq):'—'}</td>
         <td>${isFinite(rr)?(rr>=0?'+':'')+(rr*100).toFixed(1)+'%':'—'}</td>
         <td>${isFinite(Qreq)?(Math.round(Qreq*100)/100).toLocaleString('ja-JP')+' 単位':'—'}</td>
@@ -419,6 +510,7 @@
     chgPct.value=v.toLocaleString('ja-JP'); chgRange.value=Math.min(30,Math.max(-30,v));
   }
 
+  // 印刷（iPhone対策）
   function handlePrint(){
     try{if(typeof window.print==='function'){window.print();setTimeout(()=>fallbackPrint(),200);return;}}catch(e){}
     fallbackPrint();
@@ -432,27 +524,63 @@
     w.document.close(); w.focus(); setTimeout(()=>{try{w.print()}catch(e){}},300); setTimeout(()=>{try{w.close()}catch(e){}},2000);
   }
 
-  costMode.addEventListener('change',()=>{if(costMode.value==='cost'){costBlock.style.display='';mrateBlock.style.display='none';}else{costBlock.style.display='none';mrateBlock.style.display='';}compute();});
-  volMode.addEventListener('change',()=>{if(volMode.value==='qty'){qtyRow.style.display='';revRow.style.display='none';}else{qtyRow.style.display='none';revRow.style.display='';}compute();});
+  // イベント
+  costMode.addEventListener('change',()=>{ if(costMode.value==='cost'){costBlock.style.display='';mrateBlock.style.display='none';}else{costBlock.style.display='none';mrateBlock.style.display='';} compute(); });
+  volMode.addEventListener('change',()=>{ if(volMode.value==='qty'){qtyRow.style.display='';revRow.style.display='none';}else{qtyRow.style.display='none';revRow.style.display='';} compute(); });
 
-  const fmtOnInput=(el,dec=null)=>el.addEventListener('input',()=>{formatComma(el,dec);compute();});
+  const fmtOnInput=(el,dec=null)=> el.addEventListener('input',()=>{ formatComma(el,dec); compute(); });
   fmtOnInput(price); fmtOnInput(cost); fmtOnInput(mrate); fmtOnInput(qty,0); fmtOnInput(revenue);
-  chgRange.addEventListener('input',()=>{chgPct.value=Number(chgRange.value).toLocaleString('ja-JP');compute();});
-  chgPct.addEventListener('input',()=>{syncRangeAndBox();compute();});
+  fmtOnInput(chgAbs); // 直接額もカンマ整形
 
-  sampleBtn.addEventListener('click',()=>{costMode.value='cost';costBlock.style.display='';mrateBlock.style.display='none';volMode.value='qty';qtyRow.style.display='';revRow.style.display='none';price.value='1,200';cost.value='720';qty.value='1,000';chgRange.value=-5;chgPct.value='-5';compute();});
-  resetBtn.addEventListener('click',()=>{[price,cost,mrate,qty,revenue,chgPct].forEach(el=>el.value='');chgRange.value=0;chgPct.value='0';costMode.value='cost';volMode.value='qty';costBlock.style.display='';mrateBlock.style.display='none';qtyRow.style.display='';revRow.style.display='none';compute();});
+  // チップ切替
+  function setMode(mode){
+    chgMode=mode;
+    if(mode==='rate'){
+      chipRate.classList.add('active'); chipAbs.classList.remove('active');
+      rateInputs.style.display='block'; absInputs.style.display='none';
+    }else{
+      chipAbs.classList.add('active'); chipRate.classList.remove('active');
+      rateInputs.style.display='none'; absInputs.style.display='block';
+    }
+    compute();
+  }
+  chipRate.addEventListener('click',()=>setMode('rate'));
+  chipAbs.addEventListener('click',()=>setMode('abs'));
 
-  copyResultBtn.addEventListener('click',()=>{const txt=`［価格改定検討ツール／試算結果］
+  // 率入力の同期
+  chgRange.addEventListener('input',()=>{ chgPct.value=Number(chgRange.value).toLocaleString('ja-JP'); compute(); });
+  chgPct.addEventListener('input',()=>{ syncRangeAndBox(); compute(); });
+
+  // サンプル／リセット
+  sampleBtn.addEventListener('click',()=>{
+    costMode.value='cost'; costBlock.style.display=''; mrateBlock.style.display='none';
+    volMode.value='qty'; qtyRow.style.display=''; revRow.style.display='none';
+    price.value='1,200'; cost.value='720'; qty.value='1,000';
+    setMode('rate'); chgRange.value=-5; chgPct.value='-5'; chgAbs.value='';
+    compute();
+  });
+  resetBtn.addEventListener('click',()=>{
+    [price,cost,mrate,qty,revenue,chgPct,chgAbs].forEach(el=>el.value=''); chgRange.value=0; chgPct.value='0';
+    costMode.value='cost'; volMode.value='qty'; costBlock.style.display=''; mrateBlock.style.display='none'; qtyRow.style.display=''; revRow.style.display='none';
+    setMode('rate');
+    compute();
+  });
+
+  copyResultBtn.addEventListener('click',()=>{
+    const txt=
+`［価格改定検討ツール／試算結果］
 改定後単価：${kpi_price2.textContent}
 現状m：${kpi_m.textContent}
 改定後m：${kpi_m2.textContent}
 必要売上（同じ限界利益額）：${kpi_reqRev.textContent}（${kpi_reqRevDiff.textContent}）
 必要数量（同じ限界利益額）：${kpi_reqQty.textContent}（${kpi_reqQtyDiff.textContent}）`;
-    navigator.clipboard.writeText(txt).then(()=>alert('結果をコピーしました')).catch(()=>alert('コピーに失敗しました'));});
-  copyTemplateBtn.addEventListener('click',()=>{navigator.clipboard.writeText(templateArea.value||'').then(()=>alert('テンプレをコピーしました')).catch(()=>alert('コピーに失敗しました'));});
+    navigator.clipboard.writeText(txt).then(()=>alert('結果をコピーしました')).catch(()=>alert('コピーに失敗しました'));
+  });
+  copyTemplateBtn.addEventListener('click',()=>{ navigator.clipboard.writeText(templateArea.value||'').then(()=>alert('テンプレをコピーしました')).catch(()=>alert('コピーに失敗しました')); });
   printBtn.addEventListener('click',handlePrint);
 
+  // 初期化
+  relocateActions();
   compute();
 })();
 </script>
