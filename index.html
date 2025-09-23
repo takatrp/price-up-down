@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>価格改定検討ツール r5</title>
+<title>価格改定検討ツール r6</title>
 <style>
   :root{
     --brand:#578899; --ink:#1f2937; --muted:#6b7280; --bg:#f7fafc;
@@ -11,216 +11,257 @@
   }
   html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);
     font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Hiragino Kaku Gothic ProN","Yu Gothic","Meiryo",sans-serif;}
-  .wrap{max-width:780px;margin:0 auto;padding:16px}
-  .title{font-weight:800;font-size:1.2rem;margin:6px 0 12px;color:#0f172a}
-  .sub{font-size:.85rem;color:var(--muted);margin-top:-6px;margin-bottom:10px}
-  .card{background:var(--card);border-radius:12px;box-shadow:0 2px 10px rgba(0,0,0,.06);padding:14px;margin:10px 0}
+  .wrap{max-width:1100px;margin:0 auto;padding:16px}
+  .title{font-weight:800;font-size:1.2rem;margin:6px 0 10px;color:#0f172a}
+  .sub{font-size:.85rem;color:var(--muted);margin:0 0 12px}
+  .badge{display:inline-block;padding:3px 8px;border-radius:8px;background:#eef6fa;color:#578899;font-weight:700;font-size:.82rem}
+
+  /* カード共通 */
+  .card{background:var(--card);border-radius:12px;box-shadow:0 2px 10px rgba(0,0,0,.06);padding:14px}
+  .pill{display:inline-block;background:rgba(87,136,153,.1);color:var(--brand);font-weight:700;border-radius:999px;padding:6px 10px;font-size:.82rem;margin-right:6px}
   .row{display:flex;gap:10px;flex-wrap:wrap}
   .col{flex:1 1 160px;min-width:160px}
   label{display:block;font-size:.88rem;color:#374151;margin:6px 0 6px;font-weight:600}
   input[type="text"], select, textarea{
-    width:100%;box-sizing:border-box;border:1px solid #e5e7eb;border-radius:10px;
-    padding:12px;font-size:1rem;background:#fff;outline:none;
+    width:100%;box-sizing:border-box;border:1px solid #e5e7eb;border-radius:10px;padding:12px;font-size:1rem;background:#fff;outline:none;
   }
   input:focus,select:focus,textarea:focus{border-color:var(--brand);box-shadow:0 0 0 3px rgba(87,136,153,.15)}
   .hint{font-size:.78rem;color:var(--muted);margin-top:6px}
-  .pill{display:inline-block;background:rgba(87,136,153,.1);color:var(--brand);font-weight:700;border-radius:999px;padding:6px 10px;font-size:.82rem;margin-right:6px}
   .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;background:var(--brand);color:#fff;border:none;border-radius:10px;padding:12px 14px;font-weight:700;font-size:.95rem}
   .btn.alt{background:#e5e7eb;color:#111827}
+  .toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+
+  /* KPI */
   .kpi{display:flex;flex-wrap:wrap;gap:10px;margin-top:6px}
   .kpi .item{flex:1 1 160px;min-width:160px;background:#fff;border:1px solid #eef2f7;border-radius:12px;padding:12px}
   .kpi .lbl{font-size:.78rem;color:#6b7280}
   .kpi .val{font-size:1.25rem;font-weight:800;margin-top:4px}
   .kpi .val.ok{color:var(--ok)} .kpi .val.warn{color:var(--warn)}
+  .danger{color:var(--warn);font-weight:700;margin-top:10px}
+
+  /* スライダー & 安全バー */
   .slider{display:flex;align-items:center;gap:10px;margin-top:8px}
   input[type="range"]{width:100%}
-  .badge{display:inline-block;padding:3px 8px;border-radius:8px;background:#eef6fa;color:#578899;font-weight:700;font-size:.82rem}
-  .area{min-height:120px}
+  .bar{height:10px;border-radius:999px;background:#e5e7eb;overflow:hidden}
+  .bar > span{display:block;height:100%;background:linear-gradient(90deg,var(--warn),#f59e0b,var(--ok));width:0%}
+
+  /* テーブル */
   .table{width:100%;border-collapse:collapse;overflow:auto;display:block}
   .table th,.table td{border-bottom:1px solid #eef2f7;padding:8px 6px;font-size:.9rem;white-space:nowrap;text-align:right}
   .table th:first-child,.table td:first-child{text-align:left}
-  .bar{height:10px;border-radius:999px;background:#e5e7eb;overflow:hidden}
-  .bar > span{display:block;height:100%;background:linear-gradient(90deg,var(--warn),#f59e0b,var(--ok));width:0%}
-  .toolbar{display:flex;gap:8px;flex-wrap:wrap}
-  .danger{color:var(--warn);font-weight:700}
+
+  /* グラフ */
   .chartWrap{display:flex;flex-direction:column;gap:14px}
   .chart{width:100%;height:120px;border:1px solid var(--grid);border-radius:10px;padding:10px;box-sizing:border-box}
   svg{width:100%;height:100%}
   .legend{display:flex;gap:10px;align-items:center;font-size:.85rem;color:#374151;margin-top:6px}
   .lg{display:inline-block;width:14px;height:10px;border-radius:3px}
   .lg.cur{background:var(--brand)} .lg.req.ok{background:var(--ok)} .lg.req.warn{background:var(--warn)}
+
+  /* レイアウト：モバイル=1カラム、PC=2カラム */
+  .dashboard{display:grid;gap:12px}
+  .step1{grid-column:1}
+  .step2{grid-column:1}
+  .actions{grid-column:1}
+  .result{grid-column:1}
+  .graph{grid-column:1}
+  .sens{grid-column:1}
+  .template{grid-column:1}
+
+  @media (min-width:1024px){
+    .dashboard{
+      grid-template-columns: 380px 1fr;
+      align-items:start;
+    }
+    .step1{grid-column:1}
+    .step2{grid-column:1}
+    .actions{grid-column:1}
+    .result{grid-column:2}
+    .graph{grid-column:2}
+    .sens{grid-column:2}
+    .template{grid-column:2}
+    /* 結果カードを常に見える位置に */
+    .sticky{position:sticky; top:12px; z-index:1}
+  }
+
+  /* フッター・印刷 */
   .credit{color:#374151;font-size:.84rem;text-align:center;margin:20px 0 10px}
   .note{font-size:.8rem;color:#6b7280;text-align:center;margin-bottom:30px}
-  @media print{ .toolbar, button, .slider input[type="range"]{display:none !important;} .wrap{max-width:900px} }
+  @media print{
+    .toolbar, button, .slider input[type="range"]{display:none !important;}
+    .wrap{max-width:900px}
+  }
 </style>
 </head>
 <body>
 <div class="wrap">
-  <div class="title">価格改定検討ツール <span class="badge">r5</span></div>
-  <div class="sub">値引き/値上げの「現場インパクト」を<b>限界利益</b>で数値化＆グラフ化（スマホ縦完結）。</div>
+  <div class="title">価格改定検討ツール <span class="badge">r6</span></div>
+  <div class="sub">値引き/値上げの「現場インパクト」を<b>限界利益</b>で数値化＆グラフ化。</div>
 
-  <!-- STEP1 -->
-  <div class="card">
-    <div class="pill">STEP 1：現状を入力</div>
-    <div class="row">
-      <div class="col">
-        <label>入力方式（原価 or 限界利益率）</label>
-        <select id="costMode">
-          <option value="cost">単価 ＋ 原価（変動費）</option>
-          <option value="mrate">単価 ＋ 限界利益率</option>
-        </select>
-      </div>
-      <div class="col">
-        <label>数量入力 or 売上高入力</label>
-        <select id="volMode">
-          <option value="qty">数量で入力</option>
-          <option value="rev">売上高で入力</option>
-        </select>
-      </div>
-    </div>
-
-    <div class="row">
-      <div class="col">
-        <label>現在の単価（税抜）</label>
-        <input type="text" id="price" inputmode="decimal" placeholder="例）1,200" />
-        <div class="hint">P</div>
-      </div>
-      <div class="col" id="costBlock">
-        <label>1単位あたり原価（変動費）</label>
-        <input type="text" id="cost" inputmode="decimal" placeholder="例）720" />
-        <div class="hint">C（数量に比例する費用）</div>
-      </div>
-      <div class="col" id="mrateBlock" style="display:none">
-        <label>限界利益率（%）</label>
-        <input type="text" id="mrate" inputmode="decimal" placeholder="例）40" />
-        <div class="hint">m = (単価−原価)/単価</div>
-      </div>
-    </div>
-
-    <div class="row" id="qtyRow">
-      <div class="col">
-        <label>月間販売数量（単位）</label>
-        <input type="text" id="qty" inputmode="numeric" placeholder="例）1,000" />
-      </div>
-    </div>
-    <div class="row" id="revRow" style="display:none">
-      <div class="col">
-        <label>月間売上高（税抜）</label>
-        <input type="text" id="revenue" inputmode="decimal" placeholder="例）1,200,000" />
-      </div>
-    </div>
-
-    <div class="hint">※固定費は扱いません（「同じ限界利益額を維持するために必要な売上/数量」を算出）。</div>
-
-    <div class="toolbar" style="margin-top:10px">
-      <button class="btn alt" id="sampleBtn" type="button">サンプル読込</button>
-      <button class="btn alt" id="resetBtn" type="button">リセット</button>
-    </div>
-  </div>
-
-  <!-- STEP2 -->
-  <div class="card">
-    <div class="pill">STEP 2：値改定を設定</div>
-    <label>値改定率（%） <span class="hint">マイナス=値引き、プラス=値上げ</span></label>
-    <div class="slider">
-      <input type="range" id="chgRange" min="-30" max="30" step="1" value="0" />
-      <input type="text" id="chgPct" style="width:110px" inputmode="decimal" value="0" />
-      <span class="hint">%</span>
-    </div>
-    <div class="hint">安全域インジケータ</div>
-    <div class="bar"><span id="safetyBar"></span></div>
-    <div class="hint" style="margin-top:6px">※限界利益率 m に対し、値引き率が −m を超えると原価割れ（利益ゼロ以下）。</div>
-  </div>
-
-  <!-- 結果 -->
-  <div class="card" id="resultCard">
-    <div class="pill">結果</div>
-    <div class="kpi">
-      <div class="item">
-        <div class="lbl">改定後単価</div>
-        <div class="val" id="kpi_price2">—</div>
-      </div>
-      <div class="item">
-        <div class="lbl">現状の限界利益率</div>
-        <div class="val" id="kpi_m">—</div>
-      </div>
-      <div class="item">
-        <div class="lbl">値改定後の限界利益率</div>
-        <div class="val" id="kpi_m2">—</div>
-      </div>
-      <div class="item">
-        <div class="lbl">同じ限界利益額を維持するための必要売上</div>
-        <div class="val" id="kpi_reqRev">—</div>
-        <div class="hint" id="kpi_reqRevDiff"></div>
-      </div>
-      <div class="item">
-        <div class="lbl">同じ限界利益額を維持するための必要数量</div>
-        <div class="val" id="kpi_reqQty">—</div>
-        <div class="hint" id="kpi_reqQtyDiff"></div>
-      </div>
-    </div>
-    <div id="dangerMsg" class="danger" style="display:none;margin-top:10px"></div>
-  </div>
-
-  <!-- グラフ -->
-  <div class="card">
-    <div class="pill">グラフで確認</div>
-    <div class="chartWrap">
-      <div>
-        <div class="hint">売上：現状 vs 必要（同じ限界利益額を維持）</div>
-        <div class="chart"><svg id="revChart" viewBox="0 0 360 100" preserveAspectRatio="none"></svg></div>
-        <div class="legend">
-          <span class="lg cur"></span>現状
-          <span class="lg req ok" id="lgRevOk" style="display:none"></span><span id="lgRevOkLbl" style="display:none">必要（下降＝楽）</span>
-          <span class="lg req warn" id="lgRevWarn" style="display:none"></span><span id="lgRevWarnLbl" style="display:none">必要（上昇＝厳）</span>
+  <div class="dashboard">
+    <!-- STEP1 -->
+    <div class="card step1">
+      <div class="pill">STEP 1：現状を入力</div>
+      <div class="row">
+        <div class="col">
+          <label>入力方式（原価 or 限界利益率）</label>
+          <select id="costMode">
+            <option value="cost">単価 ＋ 原価（変動費）</option>
+            <option value="mrate">単価 ＋ 限界利益率</option>
+          </select>
+        </div>
+        <div class="col">
+          <label>数量入力 or 売上高入力</label>
+          <select id="volMode">
+            <option value="qty">数量で入力</option>
+            <option value="rev">売上高で入力</option>
+          </select>
         </div>
       </div>
-      <div>
-        <div class="hint">数量：現状 vs 必要（同じ限界利益額を維持）</div>
-        <div class="chart"><svg id="qtyChart" viewBox="0 0 360 100" preserveAspectRatio="none"></svg></div>
-        <div class="legend">
-          <span class="lg cur"></span>現状
-          <span class="lg req ok" id="lgQtyOk" style="display:none"></span><span id="lgQtyOkLbl" style="display:none">必要（下降＝楽）</span>
-          <span class="lg req warn" id="lgQtyWarn" style="display:none"></span><span id="lgQtyWarnLbl" style="display:none">必要（上昇＝厳）</span>
+
+      <div class="row">
+        <div class="col">
+          <label>現在の単価（税抜）</label>
+          <input type="text" id="price" inputmode="decimal" placeholder="例）1,200" />
+          <div class="hint">P</div>
+        </div>
+        <div class="col" id="costBlock">
+          <label>1単位あたり原価（変動費）</label>
+          <input type="text" id="cost" inputmode="decimal" placeholder="例）720" />
+          <div class="hint">C（数量に比例する費用）</div>
+        </div>
+        <div class="col" id="mrateBlock" style="display:none">
+          <label>限界利益率（%）</label>
+          <input type="text" id="mrate" inputmode="decimal" placeholder="例）40" />
+          <div class="hint">m = (単価−原価)/単価</div>
+        </div>
+      </div>
+
+      <div class="row" id="qtyRow">
+        <div class="col">
+          <label>月間販売数量（単位）</label>
+          <input type="text" id="qty" inputmode="numeric" placeholder="例）1,000" />
+        </div>
+      </div>
+      <div class="row" id="revRow" style="display:none">
+        <div class="col">
+          <label>月間売上高（税抜）</label>
+          <input type="text" id="revenue" inputmode="decimal" placeholder="例）1,200,000" />
+        </div>
+      </div>
+
+      <div class="hint">※固定費は扱いません（「同じ限界利益額を維持するために必要な売上/数量」を算出）。</div>
+
+      <div class="toolbar">
+        <button class="btn alt" id="sampleBtn" type="button">サンプル読込</button>
+        <button class="btn alt" id="resetBtn" type="button">リセット</button>
+      </div>
+    </div>
+
+    <!-- STEP2 -->
+    <div class="card step2">
+      <div class="pill">STEP 2：値改定を設定</div>
+      <label>値改定率（%） <span class="hint">マイナス=値引き、プラス=値上げ</span></label>
+      <div class="slider">
+        <input type="range" id="chgRange" min="-30" max="30" step="1" value="0" />
+        <input type="text" id="chgPct" style="width:110px" inputmode="decimal" value="0" />
+        <span class="hint">%</span>
+      </div>
+      <div class="hint">安全域インジケータ</div>
+      <div class="bar"><span id="safetyBar"></span></div>
+      <div class="hint" style="margin-top:6px">※限界利益率 m に対し、値引き率が −m を超えると原価割れ（利益ゼロ以下）。</div>
+    </div>
+
+    <!-- 結果（PCでは右カラム先頭＆sticky） -->
+    <div class="card result sticky" id="resultCard">
+      <div class="pill">結果</div>
+      <div class="kpi">
+        <div class="item">
+          <div class="lbl">改定後単価</div>
+          <div class="val" id="kpi_price2">—</div>
+        </div>
+        <div class="item">
+          <div class="lbl">現状の限界利益率</div>
+          <div class="val" id="kpi_m">—</div>
+        </div>
+        <div class="item">
+          <div class="lbl">値改定後の限界利益率</div>
+          <div class="val" id="kpi_m2">—</div>
+        </div>
+        <div class="item">
+          <div class="lbl">同じ限界利益額を維持するための必要売上</div>
+          <div class="val" id="kpi_reqRev">—</div>
+          <div class="hint" id="kpi_reqRevDiff"></div>
+        </div>
+        <div class="item">
+          <div class="lbl">同じ限界利益額を維持するための必要数量</div>
+          <div class="val" id="kpi_reqQty">—</div>
+          <div class="hint" id="kpi_reqQtyDiff"></div>
+        </div>
+      </div>
+      <div id="dangerMsg" class="danger" style="display:none"></div>
+    </div>
+
+    <!-- グラフ -->
+    <div class="card graph">
+      <div class="pill">グラフで確認</div>
+      <div class="chartWrap">
+        <div>
+          <div class="hint">売上：現状 vs 必要（同じ限界利益額を維持）</div>
+          <div class="chart"><svg id="revChart" viewBox="0 0 360 100" preserveAspectRatio="none"></svg></div>
+          <div class="legend">
+            <span class="lg cur"></span>現状
+            <span class="lg req ok" id="lgRevOk" style="display:none"></span><span id="lgRevOkLbl" style="display:none">必要（下降＝楽）</span>
+            <span class="lg req warn" id="lgRevWarn" style="display:none"></span><span id="lgRevWarnLbl" style="display:none">必要（上昇＝厳）</span>
+          </div>
+        </div>
+        <div>
+          <div class="hint">数量：現状 vs 必要（同じ限界利益額を維持）</div>
+          <div class="chart"><svg id="qtyChart" viewBox="0 0 360 100" preserveAspectRatio="none"></svg></div>
+          <div class="legend">
+            <span class="lg cur"></span>現状
+            <span class="lg req ok" id="lgQtyOk" style="display:none"></span><span id="lgQtyOkLbl" style="display:none">必要（下降＝楽）</span>
+            <span class="lg req warn" id="lgQtyWarn" style="display:none"></span><span id="lgQtyWarnLbl" style="display:none">必要（上昇＝厳）</span>
+          </div>
         </div>
       </div>
     </div>
-  </div>
 
-  <!-- 感度表 -->
-  <div class="card">
-    <div class="pill">感度（±1/±5/±10% の値改定時）</div>
-    <div class="hint">「現状と同じ限界利益額を維持するために必要な売上/数量（比較）」</div>
-    <div style="overflow:auto">
-      <table class="table" id="sensTable">
-        <thead>
-          <tr><th>改定率</th><th>必要売上</th><th>現状比</th><th>必要数量</th><th>現状比</th></tr>
-        </thead>
-        <tbody></tbody>
-      </table>
+    <!-- 感度表 -->
+    <div class="card sens">
+      <div class="pill">感度（±1/±5/±10% の値改定時）</div>
+      <div class="hint">「現状と同じ限界利益額を維持するために必要な売上/数量（比較）」</div>
+      <div style="overflow:auto">
+        <table class="table" id="sensTable">
+          <thead>
+            <tr><th>改定率</th><th>必要売上</th><th>現状比</th><th>必要数量</th><th>現状比</th></tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
     </div>
-  </div>
 
-  <!-- 行動提案 -->
-  <div class="card">
-    <div class="pill">今日やる3アクション</div>
-    <ol id="actions" style="margin-top:6px;padding-left:20px"></ol>
-  </div>
+    <!-- 行動提案（左カラムにまとめて一覧性UP） -->
+    <div class="card actions">
+      <div class="pill">今日やる3アクション</div>
+      <ol id="actions" style="margin-top:6px;padding-left:20px"></ol>
+    </div>
 
-  <!-- 告知テンプレ -->
-  <div class="card">
-    <div class="pill">顧客向け告知テンプレ（メール/店頭/見積書注記）</div>
-    <div class="hint">値改定の背景・時期・影響を自動差し込み。必要に応じて修正してください。</div>
-    <textarea class="area" id="templateArea"></textarea>
-    <div class="toolbar" style="margin-top:10px">
-      <button class="btn" id="copyResultBtn" type="button">結果をコピー</button>
-      <button class="btn" id="copyTemplateBtn" type="button">テンプレをコピー</button>
-      <button class="btn alt" id="printBtn" type="button">印刷</button>
+    <!-- 告知テンプレ -->
+    <div class="card template">
+      <div class="pill">顧客向け告知テンプレ（メール/店頭/見積書注記）</div>
+      <div class="hint">値改定の背景・時期・影響を自動差し込み。必要に応じて修正してください。</div>
+      <textarea class="area" id="templateArea"></textarea>
+      <div class="toolbar">
+        <button class="btn" id="copyResultBtn" type="button">結果をコピー</button>
+        <button class="btn" id="copyTemplateBtn" type="button">テンプレをコピー</button>
+        <button class="btn alt" id="printBtn" type="button">印刷</button>
+      </div>
     </div>
   </div>
 
   <!-- フッター（ご指定形式） -->
-  <div class="credit">Copyright (c) 2025 税理士法人松本会計事務所 All Rights Reserved. / r5</div>
+  <div class="credit">Copyright (c) 2025 税理士法人松本会計事務所 All Rights Reserved. / r6</div>
   <div class="note">本ツールは管理会計上の試算です。実際の価格変更は取引条件・競合状況・需要弾力性等も併せてご判断ください。</div>
 </div>
 
@@ -317,13 +358,17 @@
     const mkTx=(x,y,t,a='end')=>{ const tx=document.createElementNS('http://www.w3.org/2000/svg','text'); tx.setAttribute('x',x);tx.setAttribute('y',y);tx.setAttribute('fill','#374151');tx.setAttribute('font-size','11');tx.setAttribute('text-anchor',a);tx.textContent=t; svg.appendChild(tx);};
     const mkLn=(x1,y1,x2,y2,s='#f3f4f6')=>{ const l=document.createElementNS('http://www.w3.org/2000/svg','line'); l.setAttribute('x1',x1);l.setAttribute('y1',y1);l.setAttribute('x2',x2);l.setAttribute('y2',y2);l.setAttribute('stroke',s);l.setAttribute('stroke-width','1'); svg.appendChild(l);};
     mkLn(left,y1-10,left,y2+barH+10,'#e5e7eb'); [0.25,0.5,0.75,1].forEach(p=>{const xx=left+(W-left-right)*p; mkLn(xx,y1-10,xx,y2+barH+10);});
-    mkTx(left-8,y1+barH-5,'現状'); mkTx(left-8,y2+barH-5,'必要');
     const wCur=Math.max(2,cur*scale), wReq=Math.max(2,req*scale), up=req>cur;
     const rect=(x,y,w,h,fill)=>{ const r=document.createElementNS('http://www.w3.org/2000/svg','rect'); r.setAttribute('x',x);r.setAttribute('y',y);r.setAttribute('width',w);r.setAttribute('height',h);r.setAttribute('rx','6');r.setAttribute('fill',fill); svg.appendChild(r);};
+    // ラベル
+    mkTx(left-8,y1+barH-5,'現状'); mkTx(left-8,y2+barH-5,'必要');
+    // バー
     rect(left,y1,wCur,barH,'var(--brand)'); rect(left,y2,wReq,barH, up?'var(--warn)':'var(--ok)');
+    // 値ラベル
     const fmt=isRev? (v)=>yen(v) : (v)=> (Math.round(v*100)/100).toLocaleString('ja-JP')+' 単位';
     const t1=document.createElementNS('http://www.w3.org/2000/svg','text'); t1.setAttribute('x',left+wCur+6); t1.setAttribute('y',y1+barH-5); t1.setAttribute('fill','#111827'); t1.setAttribute('font-size','11'); t1.textContent=fmt(cur); svg.appendChild(t1);
     const t2=document.createElementNS('http://www.w3.org/2000/svg','text'); t2.setAttribute('x',left+wReq+6); t2.setAttribute('y',y2+barH-5); t2.setAttribute('fill', up?'var(--warn)':'var(--ok)'); t2.setAttribute('font-size','11'); t2.textContent=fmt(req); svg.appendChild(t2);
+    // 凡例切替
     if (isRev){
       lgRevOk.style.display = up?'none':'inline-block'; lgRevOkLbl.style.display = up?'none':'inline';
       lgRevWarn.style.display = up?'inline-block':'none'; lgRevWarnLbl.style.display = up?'inline':'none';
