@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>価格改定検討ツール r11</title>
+<title>価格改定検討ツール r12</title>
 <style>
   :root{--brand:#578899;--ink:#1f2937;--muted:#6b7280;--bg:#f7fafc;--ok:#10b981;--warn:#ef4444;--card:#fff;--grid:#e5e7eb;}
   html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Hiragino Kaku Gothic ProN","Yu Gothic","Meiryo",sans-serif;}
@@ -69,7 +69,7 @@
 <div class="wrap">
   <div class="header">
     <img src="ロゴ.jpg" alt="ロゴ" class="logo">
-    <div class="title">価格改定検討ツール <span class="badge">r11</span></div>
+    <div class="title">価格改定検討ツール <span class="badge">r12</span></div>
   </div>
   <div class="sub">値引き/値上げの「現場インパクト」を<b>限界利益</b>で数値化＆グラフ化。</div>
 
@@ -241,7 +241,7 @@
     </div>
   </div>
 
-  <div class="credit">Copyright (c) 2025 税理士法人松本会計事務所 All Rights Reserved. / r11</div>
+  <div class="credit">Copyright (c) 2025 税理士法人松本会計事務所 All Rights Reserved. / r12</div>
   <div class="note">本ツールは管理会計上の試算です。実際の価格変更は取引条件・競合状況・需要弾力性等も併せてご判断ください。</div>
 </div>
 
@@ -250,6 +250,7 @@
   const yen = n => isFinite(n) ? new Intl.NumberFormat('ja-JP',{style:'currency',currency:'JPY',maximumFractionDigits:0}).format(n) : '—';
   const pct = x => isFinite(x) ? (x*100).toFixed(1).replace(/\.0$/,'') + '%' : '—';
   const toNum=v=>{const s=String(v||'').replace(/,/g,'').replace(/[^\d.-]/g,'');const n=parseFloat(s);return isFinite(n)?n:NaN;}
+  const clamp=(v,min,max)=>Math.min(max,Math.max(min,v));
   const formatComma=(el,dec=null)=>{const n=toNum(el.value);if(!isFinite(n))return;
     if(dec===0)el.value=Math.round(n).toLocaleString('ja-JP');
     else if(typeof dec==='number')el.value=n.toLocaleString('ja-JP',{minimumFractionDigits:dec,maximumFractionDigits:dec});
@@ -304,6 +305,7 @@
   const lgQtyWarn=document.getElementById('lgQtyWarn');
   const lgQtyWarnLbl=document.getElementById('lgQtyWarnLbl');
 
+  // --- レイアウト（SP時にアクション移動） ---
   function relocateActions(){
     const isMobile = window.matchMedia('(max-width:1023px)').matches;
     if(isMobile){ if(actionsCard.previousElementSibling!==sensCard){ sensCard.insertAdjacentElement('afterend',actionsCard);} }
@@ -311,48 +313,53 @@
   }
   window.addEventListener('resize', relocateActions);
 
-  // スライダー範囲の動的最適化
+  // --- スライダー上限を必要時のみ段階的に拡張 ---
+  function ensureRange(rangeEl, target, {min=0, step=1, baseMax=1000, cap=1e12}={}){
+    rangeEl.min = min; rangeEl.step = step;
+    if(!rangeEl.dataset.baseMax){ rangeEl.dataset.baseMax = String(baseMax); rangeEl.max = baseMax; }
+    if(!rangeEl.max || Number(rangeEl.max)<baseMax){ rangeEl.max = baseMax; }
+    let max = Number(rangeEl.max);
+    if(isFinite(target) && target > 0.9*max){
+      max = Math.min(cap, Math.ceil(max*1.5/step)*step);
+      rangeEl.max = max;
+    }
+  }
+
+  // --- スライダー初期値・上限の調整（安定化版） ---
   function updateRanges(){
     const P=toNum(price.value);
-    const Q=toNum(qty.value), R0=toNum(revenue.value);
-    const baseP = isFinite(P)&&P>0 ? P : 200000;
-    costRange.min = 0; costRange.max = Math.max(1, Math.floor(baseP*0.99)); costRange.step=1;
-    mrateRange.min = 0; mrateRange.max = 90; mrateRange.step = 0.1;
 
-    const baseQ = isFinite(Q)&&Q>=0 ? Q : 1000;
-    qtyRange.min=0; qtyRange.max=Math.max(10, Math.ceil(baseQ*3)); qtyRange.step=1;
+    // 原価：0〜単価の99%（なければ10万）・必要時のみ拡張
+    const costBase = isFinite(P)&&P>0 ? Math.max(1, Math.floor(P*0.99)) : 100000;
+    ensureRange(costRange, toNum(cost.value), {min:0, step:1, baseMax:costBase, cap:1e9});
 
-    const baseR = isFinite(R0)&&R0>=0 ? R0 : (isFinite(P)? P*baseQ : 1000000);
-    revRange.min=0; revRange.max=Math.max(1000, Math.ceil(baseR*3/1000)*1000); revRange.step=1000;
+    // m率：0〜90%
+    ensureRange(mrateRange, toNum(mrate.value), {min:0, step:0.1, baseMax:90, cap:100});
 
-    chgAbsRange.min=0; chgAbsRange.max=Math.max(10, Math.ceil(baseP*2)); chgAbsRange.step=1;
+    // 数量：0〜5000（必要時のみ拡張）
+    ensureRange(qtyRange, toNum(qty.value), {min:0, step:1, baseMax:5000, cap:1e8});
 
-    // 値とスライダーを同期（範囲外を補正）
-    const sync=(el,rg,dec=null)=>{
-      const v=toNum(el.value); if(isFinite(v)){ rg.value=Math.min(rg.max,Math.max(rg.min,v)); }
-      if(dec!==null) formatComma(el,dec); else formatComma(el);
+    // 売上：0〜300万（必要時のみ拡張）
+    ensureRange(revRange, toNum(revenue.value), {min:0, step:1000, baseMax:3000000, cap:1e12});
+
+    // 改定後単価：0〜単価×2（必要時のみ拡張）
+    const absBase = isFinite(P)&&P>0 ? Math.ceil(P*2) : 200000;
+    ensureRange(chgAbsRange, toNum(chgAbs.value), {min:0, step:1, baseMax:absBase, cap:1e9});
+
+    // ノブを範囲内に補正
+    const clampRange=(rangeEl,inputEl,dec=null)=>{
+      const v=toNum(inputEl.value);
+      if(isFinite(v)){ rangeEl.value = clamp(v, Number(rangeEl.min), Number(rangeEl.max)); }
+      if(dec!==null) formatComma(inputEl,dec); else formatComma(inputEl);
     };
-    sync(cost,costRange); sync(mrate,mrateRange); sync(qty,qtyRange,0); sync(revenue,revRange); sync(chgAbs,chgAbsRange);
+    clampRange(costRange, cost);
+    clampRange(mrateRange, mrate);
+    clampRange(qtyRange, qty, 0);
+    clampRange(revRange, revenue);
+    clampRange(chgAbsRange, chgAbs);
   }
 
-  // 入力取得
-  function getInputs(){
-    const P=toNum(price.value);
-    let m=null,C=null;
-    if(costMode==='cost'){ C=toNum(cost.value); if(isFinite(P)&&isFinite(C)&&P>0&&C>=0&&C<P){ m=(P-C)/P; } }
-    else{ const mr=toNum(mrate.value); if(isFinite(P)&&isFinite(mr)&&P>0&&mr>=0&&mr<100){ m=mr/100; C=P*(1-m); } }
-
-    let Q=null,R0=null;
-    if(volMode==='qty'){ Q=toNum(qty.value); if(isFinite(P)&&isFinite(Q)&&P>0&&Q>=0) R0=P*Q; }
-    else{ R0=toNum(revenue.value); if(isFinite(P)&&isFinite(R0)&&P>0&&R0>=0) Q=R0/P; }
-
-    let r=NaN, P2=NaN;
-    if(chgMode==='rate'){ r=toNum(chgPct.value)/100; if(!isFinite(r)) r=0; if(isFinite(P)) P2=P*(1+r); }
-    else{ P2=toNum(chgAbs.value); if(isFinite(P)&&isFinite(P2)&&P>0){ r=P2/P-1; } }
-
-    return {P,C,m,Q,R0,r,P2};
-  }
-
+  // --- 計算系 ---
   function clearSVG(svg){while(svg.firstChild)svg.removeChild(svg.firstChild);}
   function drawPairBar(svg,cur,req,isRev){
     clearSVG(svg); if(!(isFinite(cur)&&isFinite(req)))return;
@@ -431,21 +438,37 @@
 担当：＿＿＿＿／TEL：＿＿＿＿／MAIL：＿＿＿＿
 `; }
 
+  function getInputs(){
+    const P=toNum(price.value);
+    let m=null,C=null;
+    if(costMode==='cost'){ const Cval=toNum(cost.value); if(isFinite(P)&&isFinite(Cval)&&P>0&&Cval>=0&&Cval<P){ C=Cval; m=(P-C)/P; } }
+    else{ const mr=toNum(mrate.value); if(isFinite(P)&&isFinite(mr)&&P>0&&mr>=0&&mr<100){ m=mr/100; C=P*(1-m); } }
+
+    let Q=null,R0=null;
+    if(volMode==='qty'){ const Qv=toNum(qty.value); if(isFinite(P)&&isFinite(Qv)&&P>0&&Qv>=0){ Q=Qv; R0=P*Q; } }
+    else{ const Rv=toNum(revenue.value); if(isFinite(P)&&isFinite(Rv)&&P>0&&Rv>=0){ R0=Rv; Q=R0/P; } }
+
+    let r=NaN, P2=NaN;
+    if(chgMode==='rate'){ r=toNum(chgPct.value)/100; if(!isFinite(r)) r=0; if(isFinite(P)) P2=P*(1+r); }
+    else{ const A=toNum(chgAbs.value); if(isFinite(P)&&isFinite(A)&&P>0){ P2=A; r=P2/P-1; } }
+
+    return {P,C,m,Q,R0,r,P2};
+  }
+
   function compute(){
-    updateRanges();
+    updateRanges(); // 安定化版（必要時のみ拡張）
 
     const {P,C,m,Q,R0,r,P2}=getInputs();
     kpi_price2.textContent = isFinite(P2)?yen(P2):'—';
 
-    // 相互同期
-    if(chgMode==='rate' && isFinite(P2)){ chgAbs.value=Math.round(P2).toLocaleString('ja-JP'); chgAbsRange.value=toNum(chgAbs.value)||0; }
+    // 率↔額 同期
+    if(chgMode==='rate' && isFinite(P2)){ chgAbs.value=Math.round(P2).toLocaleString('ja-JP'); chgAbsRange.value=clamp(toNum(chgAbs.value)||0, Number(chgAbsRange.min), Number(chgAbsRange.max)); }
     if(chgMode==='abs' && isFinite(P) && isFinite(P2)){
-      const rCalc=(P2/P-1)*100; chgPct.value=rCalc.toFixed(1).replace(/\.0$/,'');
-      chgRange.value=Math.max(-30,Math.min(30,Math.round(rCalc)));
+      const rCalc=(P2/P-1)*100; chgPct.value=rCalc.toFixed(1).replace(/\.0$/,''); chgRange.value=clamp(Math.round(rCalc), Number(chgRange.min), Number(chgRange.max));
     }
 
     [kpi_m,kpi_m2,kpi_reqRev,kpi_reqRevDiff,kpi_reqQty,kpi_reqQtyDiff].forEach(el=>{el.textContent='—';el.classList.remove('ok','warn');});
-    dangerMsg.style.display='none'; clearSVG(revChart); clearSVG(qtyChart);
+    dangerMsg.style.display='none'; while(revChart.firstChild)revChart.removeChild(revChart.firstChild); while(qtyChart.firstChild)qtyChart.removeChild(qtyChart.firstChild);
     [lgRevOk,lgRevOkLbl,lgRevWarn,lgRevWarnLbl,lgQtyOk,lgQtyOkLbl,lgQtyWarn,lgQtyWarnLbl].forEach(x=>x.style.display='none');
 
     if(!(isFinite(P)&&isFinite(C)&&isFinite(m)&&isFinite(Q)&&isFinite(R0)&&isFinite(P2)&&P>0&&C>=0&&C<P&&Q>=0&&R0>=0)){
@@ -481,10 +504,23 @@
     buildTemplate({r:rEff,P,P2,R0,Rreq,Q,Qreq});
   }
 
-  // 入力イベント（相互同期）
+  // --- 相互同期（スライダー⇔テキスト） ---
   const bindSlider = (rangeEl, inputEl, dec=null) => {
-    rangeEl.addEventListener('input', ()=>{ inputEl.value = (dec===0?Math.round(rangeEl.value):rangeEl.value).toLocaleString('ja-JP'); compute(); });
-    inputEl.addEventListener('input', ()=>{ formatComma(inputEl,dec); const v=toNum(inputEl.value); if(isFinite(v)) rangeEl.value = Math.min(rangeEl.max, Math.max(rangeEl.min, v)); compute(); });
+    rangeEl.addEventListener('input', ()=>{
+      const v=Number(rangeEl.value);
+      inputEl.value = dec===0? Math.round(v).toLocaleString('ja-JP') : v.toLocaleString('ja-JP');
+      compute();
+    });
+    inputEl.addEventListener('input', ()=>{
+      formatComma(inputEl,dec);
+      const v=toNum(inputEl.value);
+      if(isFinite(v)){
+        // 必要時のみ拡張
+        ensureRange(rangeEl, v, {min:Number(rangeEl.min), step:Number(rangeEl.step), baseMax:Number(rangeEl.max)||1000, cap:1e12});
+        rangeEl.value = clamp(v, Number(rangeEl.min), Number(rangeEl.max));
+      }
+      compute();
+    });
   };
   bindSlider(costRange, cost);
   bindSlider(mrateRange, mrate);
@@ -494,9 +530,9 @@
 
   // 率入力
   chgRange.addEventListener('input',()=>{ chgPct.value=Number(chgRange.value).toLocaleString('ja-JP'); compute(); });
-  chgPct.addEventListener('input',()=>{ let v=parseFloat(String(chgPct.value).replace(/,/g,'')); if(!isFinite(v)) v=0; v=Math.min(300,Math.max(-90,v)); chgPct.value=v.toLocaleString('ja-JP'); chgRange.value=Math.max(-30,Math.min(30,Math.round(v))); compute(); });
+  chgPct.addEventListener('input',()=>{ let v=parseFloat(String(chgPct.value).replace(/,/g,'')); if(!isFinite(v)) v=0; v=Math.min(300,Math.max(-90,v)); chgPct.value=v.toLocaleString('ja-JP'); chgRange.value=clamp(Math.round(v), Number(chgRange.min), Number(chgRange.max)); compute(); });
 
-  // 単価・他
+  // 単価
   price.addEventListener('input',()=>{ formatComma(price); updateRanges(); compute(); });
 
   // チップ切替
