@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>価格改定検討ツール r20</title>
+<title>価格改定検討ツール r21</title>
 
 <!-- Favicon -->
 <link rel="icon" type="image/png" sizes="192x192" href="favicon192192.png">
@@ -99,7 +99,7 @@
     <a href="https://www.matsumoto-kaikei.or.jp/" target="_blank" rel="noopener noreferrer">
       <img src="ロゴ.jpg" alt="ロゴ" class="logo">
     </a>
-    <div class="title">価格改定検討ツール <span class="badge">r20</span></div>
+    <div class="title">価格改定検討ツール <span class="badge">r21</span></div>
   </div>
   <div class="sub">値引き/値上げの「現場インパクト」を<b>限界利益</b>で数値化＆グラフ化。</div>
 
@@ -159,7 +159,7 @@
 
         <div class="hint">※固定費は扱いません（「同じ限界利益額を維持するために必要な売上/数量」を算出）。</div>
 
-        <!-- クイック表示（① 売上高も追加） -->
+        <!-- クイック表示（売上高も追加） -->
         <div class="inlineStats" id="inlineStats">
           <div class="stat hide" id="statM">限界利益率：<span id="stat_m_val">—</span></div>
           <div class="stat hide" id="statT">限界利益額：<span id="stat_t_val">—</span></div>
@@ -207,7 +207,7 @@
       <div class="card result" id="resultCard">
         <div class="pill">結果</div>
 
-        <!-- 改定後単価 + 改定後売上高（②） -->
+        <!-- 改定後単価 + 改定後売上高 -->
         <div class="kpi" style="margin-top:6px">
           <div class="item">
             <div class="lbl">改定後単価</div>
@@ -298,7 +298,7 @@
     </div>
   </div>
 
-  <div class="credit">Copyright (c) 2025 <a href="https://www.matsumoto-kaikei.or.jp/" target="_blank" rel="noopener noreferrer">税理士法人松本会計事務所</a> All Rights Reserved. / r20</div>
+  <div class="credit">Copyright (c) 2025 <a href="https://www.matsumoto-kaikei.or.jp/" target="_blank" rel="noopener noreferrer">税理士法人松本会計事務所</a> All Rights Reserved. / r21</div>
   <div class="note">本ツールは管理会計上の試算です。実際の価格変更は取引条件・競合状況・需要弾力性等も併せてご判断ください。</div>
 </div>
 
@@ -371,6 +371,7 @@
   const lgQtyWarn=document.getElementById('lgQtyWarn');
   const lgQtyWarnLbl=document.getElementById('lgQtyWarnLbl');
 
+  /* 2カラム切替 */
   function isTwoCol(){
     return window.matchMedia('(min-width:1024px)').matches
         || window.matchMedia('(orientation:landscape)').matches;
@@ -385,6 +386,7 @@
   }
   window.addEventListener('resize', ()=>{relocateActions(); compute();});
 
+  /* 範囲設定 */
   function updateRanges(){
     const P=toNum(price.value);
     const priceOk=isFinite(P)&&P>0;
@@ -411,7 +413,7 @@
     clampIO(revRange,revenue);
   }
 
-  /* SVG（見切れない左寄せバー） */
+  /* SVG（右側数値の見切れ防止） */
   function clearSVG(svg){while(svg.firstChild)svg.removeChild(svg.firstChild);}
   function drawPairBar(svg,cur,req,isRev){
     if(!isFinite(cur)){ clearSVG(svg); return; }
@@ -496,10 +498,10 @@
     if(volMode==='qty'){ const Qv=toNum(qty.value); if(isFinite(P)&&isFinite(Qv)&&P>0&&Qv>=0){ Q=Qv; R0=P*Q; } }
     else{ const Rv=toNum(revenue.value); if(isFinite(P)&&isFinite(Rv)&&P>0&&Rv>=0){ R0=Rv; Q=R0/P; } }
 
-    // 値改定率（手入力優先）
+    // 値改定率（手入力優先・途中入力は保持）
     let r=NaN, P2=NaN;
     if(chgMode==='rate'){
-      const raw=String(chgPct.value).trim();
+      const raw=String(chgPct.value).trim().replace(/[％%]/g,'');
       const partial=/^-?$|^-?\d+\.?$/.test(raw);
       if(!partial){ const num=parseFloat(raw); if(isFinite(num)) r=clamp(num,-70,70)/100; }
       if(isFinite(P)&&isFinite(r)) P2=P*(1+r);
@@ -543,7 +545,7 @@
       if(document.activeElement!==chgPct){ chgPct.value=rCalc.toFixed(1); }
     }
 
-    // 右側の初期化とグラフの現状描画
+    // 右側初期化と現状グラフ
     [kpi_m2,kpi_T2,kpi_reqRev,kpi_reqRevDiff,kpi_reqQty,kpi_reqQtyDiff,delta_m,delta_T].forEach(el=>{el.textContent = el.id.includes('delta')?'現状比 —':'—';});
     kpi_rev2.textContent='—'; kpi_rev2diff.textContent='現状比 —';
     dangerMsg.classList.add('hide');
@@ -562,7 +564,7 @@
     const CM=P-C, CM2=P2-C, m2=CM2/P2, rEff=(P2/P-1);
     const T0 = CM*Qv; const T2 = CM2*Qv;
 
-    // 改定後売上高（②）
+    // 改定後売上高（現状比）
     const R2 = P2*Qv;
     kpi_rev2.textContent = yen(R2);
     if(isFinite(Rv0)) kpi_rev2diff.textContent = '現状比 ' + (R2-Rv0>=0?'+':'') + yen(R2 - Rv0);
@@ -591,7 +593,7 @@
       kpi_reqQtyDiff.textContent=`現状比 ${sign}${(ratioQ*100).toFixed(1)}% （差分 ${(Math.round(dQ*100)/100).toLocaleString('ja-JP')} 単位）`;
     }
 
-    // グラフを最終値で再描画
+    // グラフ最終描画
     drawPairBar(revChart, Rv0, Rreq, true);
     drawPairBar(qtyChart, Qv, Qreq, false);
 
@@ -600,17 +602,10 @@
     buildTemplate({r:rEff,P,P2,R0:Rv0,Rreq,Q:Qv,Qreq});
   }
 
-  /* スライダー⇔テキスト同期 */
+  /* スライダー⇔テキスト同期（chgPct は専用ハンドラで） */
   const bind = (rangeEl,inputEl,dec=null)=>{
     rangeEl.addEventListener('input',()=>{const v=Number(rangeEl.value); inputEl.value=dec===0?Math.round(v).toLocaleString('ja-JP'):v.toLocaleString('ja-JP'); compute();});
     inputEl.addEventListener('input',()=>{
-      if(inputEl===chgPct){ // 値改定率：毎キーで反映（途中文字列は許容）
-        const raw=inputEl.value.trim();
-        if(/^-?$|^-?\d+\.?$/.test(raw)){ compute(); return; }
-        const num=parseFloat(raw);
-        if(isFinite(num)){ const cl=clamp(num,-70,70); chgRange.value=cl.toFixed(1); }
-        compute(); return;
-      }
       if(inputEl.value===''){ compute(); return; }
       comma(inputEl,dec); const v=toNum(inputEl.value);
       if(isFinite(v)) rangeEl.value=clamp(v, Number(rangeEl.min), Number(rangeEl.max));
@@ -623,6 +618,31 @@
   bind(revRange,revenue);
   bind(chgAbsRange,chgAbs);
 
+  // 値改定率テキスト：リアルタイム（途中入力も許容）
+  function onRateTextInput(){
+    const raw = chgPct.value.trim().replace(/[％%]/g,'');
+    if (/^-?$|^-?\d+\.?$/.test(raw)) { compute(); return; } // 「-」や「1.」などの途中
+    const num = parseFloat(raw);
+    if (isFinite(num)){
+      const cl = clamp(num, -70, 70);
+      chgRange.value = cl.toFixed(1);
+    }
+    compute();
+  }
+  function onRateTextCommit(){
+    const num = parseFloat(String(chgPct.value).replace(/[,%％]/g,''));
+    if (isFinite(num)){
+      const cl = clamp(num, -70, 70);
+      chgPct.value   = cl.toFixed(1);
+      chgRange.value = cl.toFixed(1);
+    }
+    compute();
+  }
+  chgPct.addEventListener('input', onRateTextInput);
+  chgPct.addEventListener('change', onRateTextCommit);
+  chgPct.addEventListener('blur', onRateTextCommit);
+
+  // スライダー → テキストへ
   chgRange.addEventListener('input',()=>{ if(document.activeElement!==chgPct){ chgPct.value=Number(chgRange.value).toFixed(1); } compute(); });
 
   price.addEventListener('input',()=>{ if(price.value!=='') comma(price); updateRanges(); compute(); });
