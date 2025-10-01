@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>価格改定検討ツール r21</title>
+<title>価格改定検討ツール r22</title>
 
 <!-- Favicon -->
 <link rel="icon" type="image/png" sizes="192x192" href="favicon192192.png">
@@ -99,7 +99,7 @@
     <a href="https://www.matsumoto-kaikei.or.jp/" target="_blank" rel="noopener noreferrer">
       <img src="ロゴ.jpg" alt="ロゴ" class="logo">
     </a>
-    <div class="title">価格改定検討ツール <span class="badge">r21</span></div>
+    <div class="title">価格改定検討ツール <span class="badge">r22</span></div>
   </div>
   <div class="sub">値引き/値上げの「現場インパクト」を<b>限界利益</b>で数値化＆グラフ化。</div>
 
@@ -288,7 +288,7 @@
 
       <div class="card template">
         <div class="pill">顧客向け告知テンプレ（メール/店頭/見積書注記）</div>
-        <textarea class="area" id="templateArea" style="min-height:120px"></textarea>
+        <textarea class="area" id="templateArea" style="min-height:180px"></textarea>
         <div class="miniActions" style="margin-top:8px">
           <button class="btn" id="copyResultBtn" type="button">結果をコピー</button>
           <button class="btn" id="copyTemplateBtn" type="button">テンプレをコピー</button>
@@ -298,7 +298,7 @@
     </div>
   </div>
 
-  <div class="credit">Copyright (c) 2025 <a href="https://www.matsumoto-kaikei.or.jp/" target="_blank" rel="noopener noreferrer">税理士法人松本会計事務所</a> All Rights Reserved. / r21</div>
+  <div class="credit">Copyright (c) 2025 <a href="https://www.matsumoto-kaikei.or.jp/" target="_blank" rel="noopener noreferrer">税理士法人松本会計事務所</a> All Rights Reserved. / r22</div>
   <div class="note">本ツールは管理会計上の試算です。実際の価格変更は取引条件・競合状況・需要弾力性等も併せてご判断ください。</div>
 </div>
 
@@ -468,24 +468,97 @@
     });
   }
 
+  /* ✨ 旧来の“厚め”テンプレを復活 */
+  function buildTemplate({r,P,P2,R0,Rreq,Q,Qreq,m,m2,T0,T2}){
+    if(![r,P,P2,Q].every(x=>isFinite(x))){ templateArea.value=''; return; }
+    const rPct=(r*100).toFixed(1);
+    const signR = r>=0?'+':'';
+    const Qfmt = v => (Math.round(v*100)/100).toLocaleString('ja-JP');
+
+    const R2 = isFinite(Q) ? P2*Q : NaN;           // 改定後売上（現状数量ベース）
+    const T0v = isFinite(T0) ? T0 : (isFinite(P)&&isFinite(Q)&&isFinite(m)? (P-(P*(1-m)))*Q : NaN);
+    const T2v = isFinite(T2) ? T2 : (isFinite(P2)&&isFinite(Q)&&isFinite(m)? (P2-(P2*(1-m2||0)))*Q : NaN);
+
+    const impactBlock = [
+      `・売上高（現状 → 改定後）　${isFinite(R0)?yen(R0):'—'} → ${isFinite(R2)?yen(R2):'—'}`,
+      `・限界利益率（現状 → 改定後）　${isFinite(m)?(m*100).toFixed(1)+'%':'—'} → ${isFinite(m2)?(m2*100).toFixed(1)+'%':'—'}`,
+      `・限界利益額（現状 → 改定後）　${isFinite(T0v)?yen(T0v):'—'} → ${isFinite(T2v)?yen(T2v):'—'}`
+    ].join('\n');
+
+    const keepBlock = (isFinite(Rreq)||isFinite(Qreq)) ? `
+【同じ限界利益額を維持するために必要な水準（参考）】
+・必要売上　${isFinite(Rreq)?yen(Rreq):'—'}
+・必要数量　${isFinite(Qreq)?Qfmt(Qreq)+' 単位':'—'}
+` : '';
+
+    templateArea.value =
+`件名：価格改定のご案内（適用開始日：＿＿＿年＿＿月＿＿日）
+
+いつも大変お世話になっております。
+＿＿＿＿（御社名）＿＿＿＿の＿＿（自社名）＿＿でございます。
+
+このたび、誠に心苦しいお願いではございますが、下記のとおり価格改定を実施させていただきたく存じます。
+
+【改定内容】
+・改定率　：${signR}${rPct}%　
+・単価　　：${yen(P)} → ${yen(P2)}（税抜）
+・対象　　：＿＿＿＿（商品・サービス名、型番 等）
+・適用開始：＿＿＿年＿＿月＿＿日ご注文分より
+
+【改定の背景】
+・原材料費、物流費、人件費等の上昇が継続
+・品質・供給安定・サポート体制の維持向上を優先
+・内部効率化やコスト吸収の努力を続けて参りましたが、自助努力のみでは吸収が困難な水準となったため
+
+【お取引条件の変更点】
+・単価改定（上記）
+・（任意）ボリュームディスカウント／セット価格／送料条件 等の見直し
+・既存お見積の取扱い：有効期限内は旧価格を適用（＿＿月＿＿日まで）。以降は新価格に更新いたします。
+
+【お客様への影響（目安）】
+${impactBlock}
+
+${keepBlock}【代替案／ご協議の選択肢】
+・長期契約／定期発注による価格据置や緩和
+・まとめ買い条件、仕様簡素化、納期調整 等のご提案
+・運用支援／教育の無償化など、総コスト低減の取り組み
+
+【よくあるご質問（抜粋）】
+Q1. いつから適用ですか？  
+A. ＿＿＿年＿＿月＿＿日ご注文（または出荷）分より適用いたします。
+
+Q2. 見積書・価格表・ECサイトはいつ更新されますか？  
+A. 適用開始日に合わせて同時更新いたします。
+
+Q3. 既に頂いているご注文／長期案件はどうなりますか？  
+A. 個別に契約条件を確認し、出来る限りご負担のない形で調整いたします。
+
+Q4. 特別なお取引条件（ボリューム・前払い等）で緩和できますか？  
+A. 可能です。担当までお気軽にご相談ください。
+
+【お問い合わせ】
+担当：＿＿＿＿　TEL：＿＿＿＿　Mail：＿＿＿＿
+
+何卒ご理解を賜りますようお願い申し上げます。
+
+――――――――――――――――――――――――
+（社名）＿＿＿＿＿＿＿＿＿＿＿＿
+（住所）＿＿＿＿＿＿＿＿＿＿＿＿
+（TEL）＿＿＿＿＿＿／（Mail）＿＿＿＿＿＿
+（Web）＿＿＿＿＿＿＿＿＿＿＿＿
+――――――――――――――――――――――――
+
+＜店頭掲示・見積書注記の短縮版＞
+${signR}${rPct}%の価格改定を＿＿年＿＿月＿＿日より実施いたします（${yen(P)} → ${yen(P2)} 税抜）。
+ご不明点は担当までお問い合わせください。`;
+  }
+
   function buildActions(r,m){
     const list=[]; if(!isFinite(r)||!isFinite(m)){actions.innerHTML='';return;}
     if(r<0){list.push('最低受注金額・最低ロットを即日設定（無償作業の抑止）');list.push('値引きの代替：納期延長／仕様簡素化／数量条件（価格は死守）');list.push('Top10顧客の割引承認フロー導入（根拠を記録）');}
     else if(r>0){list.push('主要顧客へ30日前告知：改定率・適用日・背景を明文化');list.push('まとめ買い・長期契約等の代替案で軟着陸');list.push('見積・価格表・EC・店頭の同時更新（チェックリスト運用）');}
     else{list.push('商品別の限界利益率を棚卸し：下位20%の値付け/条件見直し');list.push('割引上限1%/案件・累計3%/月のレビュー制');list.push('四半期ごとに原価変動の自動転嫁シナリオ作成');}
     actions.innerHTML=list.map(x=>`<li>${x}</li>`).join('');
-  }
-
-  function buildTemplate({r,P,P2,R0,Rreq,Q,Qreq}){
-    if(![r,P,P2,R0,Rreq,Q,Qreq].every(x=>isFinite(x))){templateArea.value='';return;}
-    const rPct=(r*100).toFixed(1).replace(/\.0$/,'');
-    templateArea.value=`件名：価格改定のご案内（適用開始日：＿＿＿年＿＿月＿＿日）
-
-【改定内容】
-・改定率：${r>=0?'+':''}${rPct}%（単価 ${yen(P)} → ${yen(P2)}）
-【お客様への影響（目安）】
-・必要売上 ${yen(Rreq)}、必要数量 ${(Math.round(Qreq*100)/100).toLocaleString('ja-JP')}
-`;
   }
 
   function getInputs(){
@@ -556,7 +629,7 @@
     drawPairBar(revChart, Rv0, NaN, true);
     drawPairBar(qtyChart, Qv, NaN, false);
 
-    if(!(isFinite(P)&&isFinite(C)&&isFinite(m)&&isFinite(P2)&&isFinite(Qv))){ 
+    if(!(isFinite(P)&&isFinite(C)&&isFinite(P2)&&isFinite(Qv))){ 
       safetyBar.style.width='0%'; sensBody.innerHTML=''; actions.innerHTML=''; templateArea.value='';
       return; 
     }
@@ -599,7 +672,7 @@
 
     buildSensitivity({P,C,m,Q:Qv,R0:Rv0},[-10,-5,-1,1,5,10]);
     buildActions(rEff,m);
-    buildTemplate({r:rEff,P,P2,R0:Rv0,Rreq,Q:Qv,Qreq});
+    buildTemplate({r:rEff,P,P2,R0:Rv0,Rreq,Q:Qv,Qreq,m,m2,T0,T2}); // ←詳細テンプレ
   }
 
   /* スライダー⇔テキスト同期（chgPct は専用ハンドラで） */
