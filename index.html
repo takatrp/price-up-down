@@ -32,7 +32,7 @@
   input[type="text"],textarea{width:100%;box-sizing:border-box;border:1px solid #e5e7eb;border-radius:10px;padding:10px;font-size:1rem;background:#fff;outline:none}
   input:focus,textarea:focus{border-color:var(--brand);box-shadow:0 0 0 3px rgba(87,136,153,.15)}
   .primaryInput{border:2px solid var(--brand)!important;background:#f3f8fb}
-  input::placeholder{color:#c7ccd3} /* 例）を薄く */
+  input::placeholder{color:#c7ccd3}
   .hint{font-size:.76rem;color:var(--muted);margin-top:4px}
 
   /* ボタン／チップ */
@@ -623,7 +623,6 @@ ${signR}${rPct}%の価格改定を＿＿年＿＿月＿＿日より実施いた�
     if(volMode==='qty'){ const Qv=toNum(qty.value); if(isFinite(P)&&isFinite(Qv)&&P>0&&Qv>=0){ Q=Qv; R0=P*Q; } }
     else{ const Rv=toNum(revenue.value); if(isFinite(P)&&isFinite(Rv)&&P>0&&Rv>=0){ R0=Rv; Q=R0/P; } }
 
-    // 値改定率（手入力優先・途中入力は保持）
     let r=NaN, P2=NaN;
     if(chgMode==='rate'){
       const raw=String(chgPct.value).trim().replace(/[％%]/g,'');
@@ -743,10 +742,10 @@ ${signR}${rPct}%の価格改定を＿＿年＿＿月＿＿日より実施いた�
   bind(revRange,revenue);
   bind(chgAbsRange,chgAbs);
 
-  // 値改定率テキスト：リアルタイム（手入力OK）
+  // 値改定率テキスト：リアルタイム
   function onRateTextInput(){
     const raw = chgPct.value.trim().replace(/[％%]/g,'');
-    if (/^-?$|^-?\d+\.?$/.test(raw)) { compute(); return; } // 途中入力を許容
+    if (/^-?$|^-?\d+\.?$/.test(raw)) { compute(); return; }
     const num = parseFloat(raw);
     if (isFinite(num)){
       const cl = clamp(num, -70, 70);
@@ -822,7 +821,7 @@ ${signR}${rPct}%の価格改定を＿＿年＿＿月＿＿日より実施いた�
     document.getElementById('last-updated-date').textContent = ymd;
   }catch(e){}
 
-  /* ================== チュートリアル（改良版：iOS対応） ================== */
+  /* ================== チュートリアル（改良：クリック/Enterで進む & 最終ステップ削除） ================== */
   const helpBtn = document.getElementById('helpBtn');
   const tourOverlay = document.getElementById('tourOverlay');
   const tourSpot = document.getElementById('tourSpot');
@@ -835,6 +834,7 @@ ${signR}${rPct}%の価格改定を＿＿年＿＿月＿＿日より実施いた�
   const tourEnd = document.getElementById('tourEnd');
   const tourDemoBtn = document.getElementById('tourDemoBtn');
 
+  /* 最後の「最後に」ステップは含めません */
   const steps = [
     { el: '.header', title:'ようこそ', text:'このツールは、値引き/値上げが「限界利益」に与える影響を可視化し、現場で意思決定できる形に落とし込みます。数分で使い方を確認しましょう。', align:'bottom' },
     { el: '#price', title:'1. 現在の単価', text:'まず「現在の単価」を税抜で入力します。入力と同時にコンマ整形・範囲調整が行われます。', align:'bottom' },
@@ -853,8 +853,7 @@ ${signR}${rPct}%の価格改定を＿＿年＿＿月＿＿日より実施いた�
     { el: '#resultCard', title:'5. 結果の見方', text:'「改定後単価」「改定後売上高」「限界利益率/額（改定後）」と、その現状比の差分が表示されます。原価割れは警告でお知らせ。', align:'top' },
     { el: '#graphCard', title:'6. グラフ', text:'現状と「同じ限界利益額を維持するための必要水準」をバーで比較。緑＝必要が減る（楽）、赤＝必要が増える（厳）。', align:'top' },
     { el: '#sensCard', title:'7. 感度分析', text:'±1/±5/±10%の改定シナリオに対して、必要売上・必要数量がどう変わるかを一覧で把握できます。', align:'top' },
-    { el: '#templateCard', title:'8. 告知テンプレ', text:'顧客向けの告知文を自動生成。必要に応じてコピーボタンで流用し、印刷も可能です。', align:'top' },
-    { el: '.mk-mini', title:'最後に', text:'フッターにはライセンス・利用条件・最終更新日（自動）が表示されます。いつでも右上「チュートリアル」から再確認できます。', align:'top' }
+    { el: '#templateCard', title:'8. 告知テンプレ', text:'顧客向けの告知文を自動生成。必要に応じてコピーボタンで流用し、印刷も可能です。', align:'top' }
   ];
 
   let cur = 0, tourActive = false;
@@ -938,6 +937,18 @@ ${signR}${rPct}%の価格改定を＿＿年＿＿月＿＿日より実施いた�
   tourBack.addEventListener('click', ()=> show(cur-1));
   tourEnd .addEventListener('click', endTutorial);
   tourDemoBtn.addEventListener('click', ()=>{ document.getElementById('sampleBtn').click(); });
+
+  /* ▼ 追加：フォーカス外クリック or Enter で次へ */
+  tourOverlay.addEventListener('click', (e)=>{
+    if(!tourActive) return;
+    // ツアーウィンドウ以外（半透明の部分）をクリックしたら次へ
+    if(e.target === tourOverlay){ tourNext.click(); }
+  });
+  document.addEventListener('keydown', (e)=>{
+    if(!tourActive) return;
+    if(e.key === 'Enter'){ e.preventDefault(); tourNext.click(); }
+    if(e.key === 'Escape'){ e.preventDefault(); endTutorial(); }
+  });
 
   window.addEventListener('resize', ()=>{ if(tourActive) show(cur); }, { passive:true });
   window.addEventListener('orientationchange', ()=>{ if(tourActive) setTimeout(()=>show(cur), 200); });
