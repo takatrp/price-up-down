@@ -17,7 +17,7 @@
 
   /* ヘッダー */
   .header{display:flex;align-items:center;gap:12px;margin:6px 0 8px}
-  .logo{height:48px;width:auto;object-fit:contain;border-radius:8px}
+  .logo{height:56px;width:auto;object-fit:contain;border-radius:8px}
   .title{font-weight:800;font-size:1.25rem;color:#0f172a;display:flex;align-items:center;gap:6px}
   .headRight{margin-left:auto;display:flex;gap:6px;align-items:center}
   .sub{font-size:.85rem;color:var(--muted);margin:0 0 8px}
@@ -366,7 +366,7 @@
 
   let costMode='cost', volMode='qty', chgMode='rate';
 
-  /* ================== 要素 ================== */
+  /* ================== 要素取得 ================== */
   const price = document.getElementById('price');
   const chipCost=document.getElementById('chipCost'), chipMrate=document.getElementById('chipMrate');
   const chipQty=document.getElementById('chipQty'), chipRev=document.getElementById('chipRev');
@@ -743,10 +743,10 @@ ${signR}${rPct}%の価格改定を＿＿年＿＿月＿＿日より実施いた�
   bind(revRange,revenue);
   bind(chgAbsRange,chgAbs);
 
-  // 値改定率テキスト：リアルタイム
+  // 値改定率テキスト：リアルタイム（手入力OK）
   function onRateTextInput(){
     const raw = chgPct.value.trim().replace(/[％%]/g,'');
-    if (/^-?$|^-?\d+\.?$/.test(raw)) { compute(); return; }
+    if (/^-?$|^-?\d+\.?$/.test(raw)) { compute(); return; } // 途中入力を許容
     const num = parseFloat(raw);
     if (isFinite(num)){
       const cl = clamp(num, -70, 70);
@@ -822,7 +822,7 @@ ${signR}${rPct}%の価格改定を＿＿年＿＿月＿＿日より実施いた�
     document.getElementById('last-updated-date').textContent = ymd;
   }catch(e){}
 
-  /* ================== チュートリアル ================== */
+  /* ================== チュートリアル（改良版：iOS対応） ================== */
   const helpBtn = document.getElementById('helpBtn');
   const tourOverlay = document.getElementById('tourOverlay');
   const tourSpot = document.getElementById('tourSpot');
@@ -837,8 +837,7 @@ ${signR}${rPct}%の価格改定を＿＿年＿＿月＿＿日より実施いた�
 
   const steps = [
     { el: '.header', title:'ようこそ', text:'このツールは、値引き/値上げが「限界利益」に与える影響を可視化し、現場で意思決定できる形に落とし込みます。数分で使い方を確認しましょう。', align:'bottom' },
-    { el: '#price', title:'1. 現在の単価', text:'まず「現在の単価」を税抜で入力します。入力と同時にコンマ整形・範囲調整が行われます。', align:'bottom',
-      ensure:()=>{} },
+    { el: '#price', title:'1. 現在の単価', text:'まず「現在の単価」を税抜で入力します。入力と同時にコンマ整形・範囲調整が行われます。', align:'bottom' },
     { el: '#chipsCostGroup', title:'2. コストの入力方法', text:'原価（変動費）か、限界利益率のどちらかで入力方法を選びます。選択に応じて下の入力欄が切り替わります。', align:'bottom',
       ensure:()=>setCostMode('cost') },
     { el: '#blockCost', title:'2-1. 原価（変動費）', text:'「1単位あたり原価」を入力（スライダー/直接入力）。原価は「現在の単価」を上限として自動クランプされます。', align:'right',
@@ -859,46 +858,70 @@ ${signR}${rPct}%の価格改定を＿＿年＿＿月＿＿日より実施いた�
   ];
 
   let cur = 0, tourActive = false;
-  function scrollToEl(el){
-    el.scrollIntoView({behavior:'smooth',block:'center',inline:'center'});
+
+  const getViewport = () => {
+    const vv = window.visualViewport;
+    return vv ? { w: vv.width, h: vv.height } : { w: window.innerWidth, h: window.innerHeight };
+  };
+
+  function bringIntoView(el){
+    if(!el) return;
+    const rect = el.getBoundingClientRect();
+    const vp = getViewport();
+    const margin = 100;
+    if(rect.top >= margin && rect.bottom <= vp.h - margin) return;
+    const pageY = window.pageYOffset || document.documentElement.scrollTop;
+    const targetTop = pageY + rect.top;
+    const to = Math.max(0, targetTop - (vp.h/2 - rect.height/2) - 12);
+    window.scrollTo({ top: to, behavior: 'smooth' });
   }
+
   function place(step){
     const el = document.querySelector(step.el);
-    if(!el){ return; }
+    if(!el) return;
+
     const r = el.getBoundingClientRect();
     const pad = 6;
     tourSpot.style.left = (r.left - pad) + 'px';
-    tourSpot.style.top = (r.top - pad) + 'px';
-    tourSpot.style.width = (r.width + pad*2) + 'px';
-    tourSpot.style.height = (r.height + pad*2) + 'px';
+    tourSpot.style.top  = (r.top  - pad) + 'px';
+    tourSpot.style.width  = (Math.max(0,r.width)  + pad*2) + 'px';
+    tourSpot.style.height = (Math.max(0,r.height) + pad*2) + 'px';
 
     tourTitle.textContent = step.title || '';
-    tourText.textContent = step.text || '';
-    tourStep.textContent = (cur+1) + ' / ' + steps.length;
+    tourText.textContent  = step.text  || '';
+    tourStep.textContent  = (cur+1) + ' / ' + steps.length;
 
     const box = tourBox.getBoundingClientRect();
+    const vp = getViewport();
     let bx = r.left, by = r.bottom + 12;
-    if(step.align==='top'){ by = r.top - (box.height + 12); }
-    if(step.align==='right'){ bx = r.right + 12; by = r.top; }
-    if(step.align==='left'){ bx = r.left - (Math.min(box.width, 360) + 12); by = r.top; }
-    const vw = window.innerWidth, vh = window.innerHeight;
-    bx = Math.max(12, Math.min(bx, vw - (box.width + 12)));
-    by = Math.max(12, Math.min(by, vh - (box.height + 12)));
+    if(step.align==='top')   by = r.top - (box.height + 12);
+    if(step.align==='right'){bx = r.right + 12; by = r.top;}
+    if(step.align==='left') {bx = r.left - (Math.min(box.width, 360) + 12); by = r.top;}
+
+    bx = Math.max(12, Math.min(bx, vp.w - (box.width + 12)));
+    by = Math.max(12, Math.min(by, vp.h - (box.height + 12)));
     tourBox.style.left = bx + 'px';
-    tourBox.style.top = by + 'px';
+    tourBox.style.top  = by + 'px';
 
     tourBack.disabled = cur===0;
     tourNext.textContent = (cur===steps.length-1)?'完了':'次へ';
   }
+
   function show(i){
     cur = Math.max(0, Math.min(i, steps.length-1));
     const s = steps[cur];
     if(s.ensure) s.ensure();
-    const target = document.querySelector(s.el);
-    if(target){ scrollToEl(target); setTimeout(()=>place(s), 260); }
-    else{ place(s); }
+
+    const el = document.querySelector(s.el);
+    if(el) bringIntoView(el);
+
+    requestAnimationFrame(()=>{
+      setTimeout(()=>{ place(s); }, 120);
+    });
   }
+
   function startTutorial(){
+    document.activeElement && document.activeElement.blur();
     tourActive = true;
     tourOverlay.classList.add('active');
     tourOverlay.setAttribute('aria-hidden','false');
@@ -910,38 +933,19 @@ ${signR}${rPct}%の価格改定を＿＿年＿＿月＿＿日より実施いた�
     tourOverlay.setAttribute('aria-hidden','true');
   }
 
-  helpBtn.addEventListener('click', startTutorial);
+  document.getElementById('helpBtn').addEventListener('click', startTutorial);
   tourNext.addEventListener('click', ()=>{ if(cur<steps.length-1){ show(cur+1); } else { endTutorial(); } });
   tourBack.addEventListener('click', ()=> show(cur-1));
-  tourEnd.addEventListener('click', endTutorial);
+  tourEnd .addEventListener('click', endTutorial);
   tourDemoBtn.addEventListener('click', ()=>{ document.getElementById('sampleBtn').click(); });
 
-  window.addEventListener('resize', ()=>{ if(tourActive) place(steps[cur]); });
-  window.addEventListener('scroll', ()=>{ if(tourActive) place(steps[cur]); });
-  window.addEventListener('keydown', (e)=>{
-    if(!tourActive) return;
-    if(e.key==='Escape'){ endTutorial(); }
-    if(e.key==='ArrowRight'){ tourNext.click(); }
-    if(e.key==='ArrowLeft'){ tourBack.click(); }
-  });
+  window.addEventListener('resize', ()=>{ if(tourActive) show(cur); }, { passive:true });
+  window.addEventListener('orientationchange', ()=>{ if(tourActive) setTimeout(()=>show(cur), 200); });
+  if (window.visualViewport){
+    window.visualViewport.addEventListener('resize', ()=>{ if(tourActive) setTimeout(()=>show(cur), 50); }, { passive:true });
+  }
 
   /* 初期化 */
-  try{
-    document.getElementById('cpy-year').textContent = String(new Date().getFullYear());
-    const ld = new Date(document.lastModified);
-    const z = n => String(n).padStart(2,'0');
-    const ymd = isNaN(ld.getTime()) ? '' : `${ld.getFullYear()}-${z(ld.getMonth()+1)}-${z(ld.getDate())}`;
-    document.getElementById('last-updated-date').textContent = ymd;
-  }catch(e){}
-
-  /* 計算系 */
-  function clearSVG(svg){while(svg.firstChild)svg.removeChild(svg.firstChild);}
-  function buildSensitivity(){} // ダミー宣言（上で定義済のため省略用）
-  function buildActions(){}     // 同上（実体は上にあり）
-  function buildTemplate(){}    // 同上（実体は上にあり）
-  // ↑上書き防止のためのダミー宣言は不要でしたが、lint誤検知回避で残置
-
-  /* 実行 */
   relocateActions();
   updateRanges();
   compute();
