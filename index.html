@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>価格改定検討ツール r23</title>
+<title>価格改定検討ツール r24</title>
 
 <!-- Favicon -->
 <link rel="icon" type="image/png" sizes="192x192" href="favicon192192.png">
@@ -18,8 +18,9 @@
   /* ヘッダー */
   .header{display:flex;align-items:center;gap:12px;margin:6px 0 8px}
   .logo{height:48px;width:auto;object-fit:contain;border-radius:8px}
-  .title{font-weight:800;font-size:1.25rem;color:#0f172a}
-  .badge{display:inline-block;padding:3px 8px;border-radius:8px;background:#eef6fa;color:#578899;font-weight:700;font-size:.82rem;margin-left:6px}
+  .title{font-weight:800;font-size:1.25rem;color:#0f172a;display:flex;align-items:center;gap:6px}
+  .badge{display:inline-block;padding:3px 8px;border-radius:8px;background:#eef6fa;color:#578899;font-weight:700;font-size:.82rem}
+  .headRight{margin-left:auto;display:flex;gap:6px;align-items:center}
   .sub{font-size:.85rem;color:var(--muted);margin:0 0 8px}
 
   /* カード */
@@ -36,8 +37,9 @@
   .hint{font-size:.76rem;color:var(--muted);margin-top:4px}
 
   /* ボタン／チップ */
-  .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;background:var(--brand);color:#fff;border:none;border-radius:10px;padding:10px 12px;font-weight:700;font-size:.92rem}
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;background:var(--brand);color:#fff;border:none;border-radius:10px;padding:10px 12px;font-weight:700;font-size:.92rem;cursor:pointer}
   .btn.alt{background:#e5e7eb;color:#111827}
+  .btn.ghost{background:transparent;color:#374151;border:1px solid #d1d5db}
   .btn.sm{padding:6px 8px;font-size:.82rem;border-radius:8px}
   .miniActions{display:flex;gap:6px}
 
@@ -98,6 +100,20 @@
   .mk-mini a{color:inherit;text-decoration:underline}
   .note{font-size:.8rem;color:#6b7280;text-align:center;margin-bottom:24px}
   @media print{.slider input[type="range"],button{display:none !important}.wrap{max-width:900px}}
+
+  /* ===== チュートリアル（ガイド） ===== */
+  .tour-overlay{position:fixed;inset:0;background:rgba(15,23,42,.45);backdrop-filter:saturate(120%) blur(1px);z-index:9998;display:none}
+  .tour-overlay.active{display:block}
+  .tour-spot{position:fixed;border:2px solid #fff;border-radius:12px;box-shadow:0 0 0 8px rgba(255,255,255,.18),0 10px 30px rgba(0,0,0,.35);z-index:9999;pointer-events:none;transition:all .18s ease}
+  .tour-box{position:fixed;max-width:380px;background:#fff;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.25);padding:14px;z-index:10000}
+  .tour-title{font-weight:800;margin:2px 0 4px;color:#0f172a}
+  .tour-text{font-size:.92rem;color:#374151;line-height:1.55}
+  .tour-controls{display:flex;justify-content:space-between;align-items:center;margin-top:10px}
+  .tour-step{font-size:.8rem;color:#6b7280}
+  .tour-actions{display:flex;gap:6px;align-items:center}
+  .tour-btn{padding:6px 10px;border-radius:8px;font-weight:700;font-size:.85rem;border:1px solid #d1d5db;background:#fff;color:#111827;cursor:pointer}
+  .tour-btn.primary{background:var(--brand);border-color:var(--brand);color:#fff}
+  .tour-btn.ghost{background:transparent}
 </style>
 </head>
 <body>
@@ -106,14 +122,17 @@
     <a href="https://www.matsumoto-kaikei.or.jp/" target="_blank" rel="noopener noreferrer">
       <img src="ロゴ.jpg" alt="ロゴ" class="logo">
     </a>
-    <div class="title">価格改定検討ツール <span class="badge">r23</span></div>
+    <div class="title">価格改定検討ツール <span class="badge">r24</span></div>
+    <div class="headRight">
+      <button id="helpBtn" class="btn ghost sm" type="button" aria-label="チュートリアルを開始">❓ チュートリアル</button>
+    </div>
   </div>
   <div class="sub">値引き/値上げの「現場インパクト」を<b>限界利益</b>で数値化＆グラフ化。</div>
 
   <div class="dashboard">
     <!-- 左 -->
     <div class="colL">
-      <div class="card step1">
+      <div class="card step1" id="step1Card">
         <div class="cardHeader">
           <div class="pill">STEP 1：現状を入力</div>
           <div class="miniActions">
@@ -122,22 +141,22 @@
           </div>
         </div>
 
-        <label>現在の単価（税抜）</label>
+        <label for="price">現在の単価（税抜）</label>
         <input type="text" id="price" class="primaryInput" inputmode="decimal" placeholder="例）1,200" />
 
-        <div class="chipGroup" aria-label="コスト入力方法">
+        <div class="chipGroup" aria-label="コスト入力方法" id="chipsCostGroup">
           <button class="chip active" id="chipCost" type="button">原価（変動費）</button>
           <button class="chip" id="chipMrate" type="button">限界利益率</button>
         </div>
         <div id="blockCost">
-          <label>1単位あたり原価（変動費）</label>
+          <label for="cost">1単位あたり原価（変動費）</label>
           <div class="slider">
             <input type="range" id="costRange" min="0" max="100000" step="1" />
             <input type="text" id="cost" inputmode="decimal" placeholder="例）720" />
           </div>
         </div>
         <div id="blockMrate" class="hide">
-          <label>限界利益率（%）</label>
+          <label for="mrate">限界利益率（%）</label>
           <div class="slider">
             <input type="range" id="mrateRange" min="0" max="90" step="0.1" />
             <input type="text" id="mrate" inputmode="decimal" placeholder="例）40" />
@@ -145,19 +164,19 @@
           </div>
         </div>
 
-        <div class="chipGroup" aria-label="ボリューム入力方法">
+        <div class="chipGroup" aria-label="ボリューム入力方法" id="chipsVolGroup">
           <button class="chip active" id="chipQty" type="button">数量</button>
           <button class="chip" id="chipRev" type="button">売上高</button>
         </div>
         <div id="blockQty">
-          <label>月間販売数量（単位）</label>
+          <label for="qty">月間販売数量（単位）</label>
           <div class="slider">
             <input type="range" id="qtyRange" min="0" max="10000" step="1" />
             <input type="text" id="qty" inputmode="numeric" placeholder="例）1,000" />
           </div>
         </div>
         <div id="blockRev" class="hide">
-          <label>月間売上高（税抜）</label>
+          <label for="revenue">月間売上高（税抜）</label>
           <div class="slider">
             <input type="range" id="revRange" min="0" max="3000000" step="1000" />
             <input type="text" id="revenue" inputmode="decimal" placeholder="例）1,200,000" />
@@ -166,7 +185,7 @@
 
         <div class="hint">※固定費は扱いません（「同じ限界利益額を維持するために必要な売上/数量」を算出）。</div>
 
-        <!-- クイック表示（売上高も追加） -->
+        <!-- クイック表示 -->
         <div class="inlineStats" id="inlineStats">
           <div class="stat hide" id="statM">限界利益率：<span id="stat_m_val">—</span></div>
           <div class="stat hide" id="statT">限界利益額：<span id="stat_t_val">—</span></div>
@@ -174,16 +193,16 @@
         </div>
       </div>
 
-      <div class="card step2">
+      <div class="card step2" id="step2Card">
         <div class="pill">STEP 2：値改定を設定</div>
 
-        <div class="chipGroup" aria-label="改定方法の選択">
+        <div class="chipGroup" aria-label="改定方法の選択" id="chipsChgGroup">
           <button class="chip active" id="chipRate" type="button" aria-selected="true">値改定率</button>
           <button class="chip" id="chipAbs" type="button" aria-selected="false">改定後単価</button>
         </div>
 
         <div id="rateInputs">
-          <label>値改定率（%） <span class="hint">マイナス=値引き、プラス=値上げ</span></label>
+          <label for="chgPct">値改定率（%） <span class="hint">マイナス=値引き、プラス=値上げ</span></label>
           <div class="slider">
             <input type="range" id="chgRange" min="-70" max="70" step="0.1" value="0" />
             <input type="text" id="chgPct" style="width:120px" inputmode="text" value="0" />
@@ -192,7 +211,7 @@
         </div>
 
         <div id="absInputs" class="hide">
-          <label>改定後単価（税抜）</label>
+          <label for="chgAbs">改定後単価（税抜）</label>
           <div class="slider">
             <input type="range" id="chgAbsRange" min="0" max="200000" step="1" />
             <input type="text" id="chgAbs" inputmode="decimal" placeholder="例）1,140" />
@@ -258,7 +277,7 @@
         <div id="dangerMsg" class="danger hide"></div>
       </div>
 
-      <div class="card graph">
+      <div class="card graph" id="graphCard">
         <div class="pill">グラフで確認</div>
         <div class="chartWrap">
           <div>
@@ -293,7 +312,7 @@
         </div>
       </div>
 
-      <div class="card template">
+      <div class="card template" id="templateCard">
         <div class="pill">顧客向け告知テンプレ（メール/店頭/見積書注記）</div>
         <textarea class="area" id="templateArea" style="min-height:180px"></textarea>
         <div class="miniActions" style="margin-top:8px">
@@ -311,13 +330,31 @@
   © <span id="cpy-year">2025</span> <a href="https://www.matsumoto-kaikei.or.jp/" target="_blank" rel="noopener license">税理士法人松本会計事務所</a> ｜ 
   <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank" rel="license noopener">CC BY-NC-SA 4.0</a> ｜ 
   <a href="/tool-portal/terms.html" target="_blank" rel="noopener">利用条件</a> ｜ 
-  <span id="build-rev">r23</span>（<span id="last-updated-date"></span>）
+  <span id="build-rev">r24</span>（<span id="last-updated-date"></span>）
 </footer>
 <div class="note">本ツールは管理会計上の試算です。実際の価格変更は取引条件・競合状況・需要弾力性等も併せてご判断ください。</div>
 
+<!-- ===== チュートリアル（DOM要素） ===== -->
+<div id="tourOverlay" class="tour-overlay" aria-hidden="true">
+  <div id="tourSpot" class="tour-spot"></div>
+  <div id="tourBox" class="tour-box" role="dialog" aria-modal="true" aria-live="polite">
+    <div class="tour-title" id="tourTitle">ようこそ</div>
+    <div class="tour-text" id="tourText"></div>
+    <div class="tour-controls">
+      <div class="tour-step" id="tourStep">1 / 1</div>
+      <div class="tour-actions">
+        <button class="tour-btn ghost" id="tourDemoBtn" type="button">デモ入力</button>
+        <button class="tour-btn" id="tourBack" type="button">戻る</button>
+        <button class="tour-btn primary" id="tourNext" type="button">次へ</button>
+        <button class="tour-btn ghost" id="tourEnd" type="button" aria-label="終了">終了</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
 (function(){
-  /* -------------- 共通ユーティリティ -------------- */
+  /* ================== 共通ユーティリティ ================== */
   const yen = n => isFinite(n) ? new Intl.NumberFormat('ja-JP',{style:'currency',currency:'JPY',maximumFractionDigits:0}).format(n) : '—';
   const pct = x => isFinite(x) ? (x*100).toFixed(1).replace(/\.0$/,'') + '%' : '—';
   const toNum=v=>{const s=String(v||'').replace(/,/g,'').replace(/[^\d.-]/g,'');const n=parseFloat(s);return isFinite(n)?n:NaN;}
@@ -330,7 +367,7 @@
 
   let costMode='cost', volMode='qty', chgMode='rate';
 
-  /* -------------- 要素 -------------- */
+  /* ================== 要素 ================== */
   const price = document.getElementById('price');
   const chipCost=document.getElementById('chipCost'), chipMrate=document.getElementById('chipMrate');
   const chipQty=document.getElementById('chipQty'), chipRev=document.getElementById('chipRev');
@@ -385,7 +422,7 @@
   const lgQtyWarn=document.getElementById('lgQtyWarn');
   const lgQtyWarnLbl=document.getElementById('lgQtyWarnLbl');
 
-  /* -------------- レイアウト制御（スマホ横で2カラム） -------------- */
+  /* ================== レイアウト（スマホ横で2カラム） ================== */
   function isTwoCol(){
     return window.matchMedia('(min-width:1024px)').matches
         || window.matchMedia('(orientation:landscape)').matches;
@@ -400,7 +437,7 @@
   }
   window.addEventListener('resize', ()=>{relocateActions(); compute();});
 
-  /* -------------- 範囲設定 -------------- */
+  /* ================== 範囲設定 ================== */
   function updateRanges(){
     const P=toNum(price.value);
     const priceOk=isFinite(P)&&P>0;
@@ -427,7 +464,7 @@
     clampIO(revRange,revenue);
   }
 
-  /* -------------- SVGチャート（右端見切れ防止） -------------- */
+  /* ================== SVGチャート ================== */
   function clearSVG(svg){while(svg.firstChild)svg.removeChild(svg.firstChild);}
   function drawPairBar(svg,cur,req,isRev){
     if(!isFinite(cur)){ clearSVG(svg); return; }
@@ -461,13 +498,11 @@
     else{lgQtyOk.style.display=up?'none':'inline-block';lgQtyOkLbl.style.display=up?'none':'inline';lgQtyWarn.style.display=up?'inline-block':'none';lgQtyWarnLbl.style.display=up?'inline':'none';}
   }
 
-  /* -------------- インジケータ -------------- */
+  /* ================== インジケータ・感度 ================== */
   function safetyGauge(m,r){
     if(!isFinite(m)||!isFinite(r)){safetyBar.style.width='0%';return;}
     const x=(r-(-m))/(0.3-(-m)); safetyBar.style.width=Math.min(100,Math.max(0,x*100)).toFixed(1)+'%';
   }
-
-  /* -------------- 感度表 -------------- */
   function buildSensitivity(base,steps){
     const {P,C,Q,R0}=base, T0=(P-C)*Q; sensBody.innerHTML='';
     steps.forEach(s=>{
@@ -484,7 +519,7 @@
     });
   }
 
-  /* -------------- 厚めテンプレ（復元版） -------------- */
+  /* ================== テンプレ（厚め） ================== */
   function buildTemplate({r,P,P2,R0,Rreq,Q,Qreq,m,m2,T0,T2}){
     if(![r,P,P2,Q].every(x=>isFinite(x))){ templateArea.value=''; return; }
     const rPct=(r*100).toFixed(1);
@@ -569,7 +604,7 @@ ${signR}${rPct}%の価格改定を＿＿年＿＿月＿＿日より実施いた�
 ご不明点は担当までお問い合わせください。`;
   }
 
-  /* -------------- 3アクション -------------- */
+  /* ================== 3アクション ================== */
   function buildActions(r,m){
     const list=[]; if(!isFinite(r)||!isFinite(m)){actions.innerHTML='';return;}
     if(r<0){list.push('最低受注金額・最低ロットを即日設定（無償作業の抑止）');list.push('値引きの代替：納期延長／仕様簡素化／数量条件（価格は死守）');list.push('Top10顧客の割引承認フロー導入（根拠を記録）');}
@@ -578,7 +613,7 @@ ${signR}${rPct}%の価格改定を＿＿年＿＿月＿＿日より実施いた�
     actions.innerHTML=list.map(x=>`<li>${x}</li>`).join('');
   }
 
-  /* -------------- 入力取得 -------------- */
+  /* ================== 入力取得 / 再計算 ================== */
   function getInputs(){
     const P=toNum(price.value);
     let m=null,C=null;
@@ -603,13 +638,12 @@ ${signR}${rPct}%の価格改定を＿＿年＿＿月＿＿日より実施いた�
     return {P,C,m,Q,R0,r,P2};
   }
 
-  /* -------------- 再計算 -------------- */
   function compute(){
     updateRanges();
 
     const {P,C,m,Q,R0,r,P2}=getInputs();
 
-    // STEP1クイック表示
+    // STEP1クイック
     if(isFinite(P)&&isFinite(C)&&P>0&&C>=0&&C<=P){
       statM.classList.remove('hide'); stat_m_val.textContent=pct((P-C)/P);
       const Qv = isFinite(Q) ? Q : (isFinite(R0)&&isFinite(P)?R0/P:NaN);
@@ -694,7 +728,7 @@ ${signR}${rPct}%の価格改定を＿＿年＿＿月＿＿日より実施いた�
     buildTemplate({r:rEff,P,P2,R0:Rv0,Rreq,Q:Qv,Qreq,m,m2,T0,T2});
   }
 
-  /* -------------- 入出力同期 -------------- */
+  /* ================== 入出力同期 ================== */
   const bind = (rangeEl,inputEl,dec=null)=>{
     rangeEl.addEventListener('input',()=>{const v=Number(rangeEl.value); inputEl.value=dec===0?Math.round(v).toLocaleString('ja-JP'):v.toLocaleString('ja-JP'); compute();});
     inputEl.addEventListener('input',()=>{
@@ -710,7 +744,7 @@ ${signR}${rPct}%の価格改定を＿＿年＿＿月＿＿日より実施いた�
   bind(revRange,revenue);
   bind(chgAbsRange,chgAbs);
 
-  // 値改定率テキスト：リアルタイム（途中入力も許容）
+  // 値改定率テキスト：リアルタイム
   function onRateTextInput(){
     const raw = chgPct.value.trim().replace(/[％%]/g,'');
     if (/^-?$|^-?\d+\.?$/.test(raw)) { compute(); return; }
@@ -733,7 +767,6 @@ ${signR}${rPct}%の価格改定を＿＿年＿＿月＿＿日より実施いた�
   chgPct.addEventListener('input', onRateTextInput);
   chgPct.addEventListener('change', onRateTextCommit);
   chgPct.addEventListener('blur', onRateTextCommit);
-
   chgRange.addEventListener('input',()=>{ if(document.activeElement!==chgPct){ chgPct.value=Number(chgRange.value).toFixed(1); } compute(); });
 
   price.addEventListener('input',()=>{ if(price.value!=='') comma(price); updateRanges(); compute(); });
@@ -773,8 +806,15 @@ ${signR}${rPct}%の価格改定を＿＿年＿＿月＿＿日より実施いた�
   });
 
   document.getElementById('printBtn').addEventListener('click',()=>{ try{ window.print(); }catch(e){} });
+  document.getElementById('copyResultBtn').addEventListener('click',()=>{
+    const text = document.getElementById('resultCard').innerText || '';
+    if(navigator.clipboard){ navigator.clipboard.writeText(text); }
+  });
+  document.getElementById('copyTemplateBtn').addEventListener('click',()=>{
+    if(navigator.clipboard){ navigator.clipboard.writeText(templateArea.value||''); }
+  });
 
-  /* -------------- フッター：年号 & 最終更新日（YYYY-MM-DD） -------------- */
+  /* ================== フッター（年 & 最終更新日） ================== */
   try{
     document.getElementById('cpy-year').textContent = String(new Date().getFullYear());
     const ld = new Date(document.lastModified);
@@ -783,6 +823,115 @@ ${signR}${rPct}%の価格改定を＿＿年＿＿月＿＿日より実施いた�
     document.getElementById('last-updated-date').textContent = ymd;
   }catch(e){}
 
+  /* ================== チュートリアル ================== */
+  const helpBtn = document.getElementById('helpBtn');
+  const tourOverlay = document.getElementById('tourOverlay');
+  const tourSpot = document.getElementById('tourSpot');
+  const tourBox = document.getElementById('tourBox');
+  const tourTitle = document.getElementById('tourTitle');
+  const tourText = document.getElementById('tourText');
+  const tourStep = document.getElementById('tourStep');
+  const tourNext = document.getElementById('tourNext');
+  const tourBack = document.getElementById('tourBack');
+  const tourEnd = document.getElementById('tourEnd');
+  const tourDemoBtn = document.getElementById('tourDemoBtn');
+
+  const steps = [
+    { el: '.header', title:'ようこそ', text:'このツールは、値引き/値上げが「限界利益」に与える影響を可視化し、現場で意思決定できる形に落とし込みます。数分で使い方を確認しましょう。', align:'bottom' },
+    { el: '#price', title:'1. 現在の単価', text:'まず「現在の単価」を税抜で入力します。入力と同時にコンマ整形・範囲調整が行われます。', align:'bottom',
+      ensure:()=>{} },
+    { el: '#chipsCostGroup', title:'2. コストの入力方法', text:'原価（変動費）か、限界利益率のどちらかで入力方法を選びます。選択に応じて下の入力欄が切り替わります。', align:'bottom',
+      ensure:()=>setCostMode('cost') },
+    { el: '#blockCost', title:'2-1. 原価（変動費）', text:'「1単位あたり原価」を入力（スライダー/直接入力）。原価は「現在の単価」を上限として自動クランプされます。', align:'right',
+      ensure:()=>setCostMode('cost') },
+    { el: '#chipsVolGroup', title:'3. ボリュームの入力', text:'数量または売上高のいずれかで入力します。こちらもスライダー/直接入力に対応。', align:'bottom',
+      ensure:()=>setVolMode('qty') },
+    { el: '#blockQty', title:'3-1. 数量', text:'月間販売数量を入力します（上限10,000）。売上高で入力したい場合は「売上高」を選択してください。', align:'right',
+      ensure:()=>setVolMode('qty') },
+    { el: '#chipsChgGroup', title:'4. 改定方法の選択', text:'値改定は「改定率」または「改定後単価」を選べます。どちらもスライダー/直接入力に対応し、相互に同期します。', align:'bottom',
+      ensure:()=>setChgMode('rate') },
+    { el: '#rateInputs', title:'4-1. 値改定率', text:'キーボード入力でもリアルタイムに再計算。負号・小数1位までOK（-70%〜+70%）。', align:'right',
+      ensure:()=>setChgMode('rate') },
+    { el: '#resultCard', title:'5. 結果の見方', text:'「改定後単価」「改定後売上高」「限界利益率/額（改定後）」と、その現状比の差分が表示されます。原価割れは警告でお知らせ。', align:'top' },
+    { el: '#graphCard', title:'6. グラフ', text:'現状と「同じ限界利益額を維持するための必要水準」をバーで比較。緑＝必要が減る（楽）、赤＝必要が増える（厳）。', align:'top' },
+    { el: '#sensCard', title:'7. 感度分析', text:'±1/±5/±10%の改定シナリオに対して、必要売上・必要数量がどう変わるかを一覧で把握できます。', align:'top' },
+    { el: '#templateCard', title:'8. 告知テンプレ', text:'顧客向けの告知文を自動生成。必要に応じてコピーボタンで流用し、印刷も可能です。', align:'top' },
+    { el: '.mk-mini', title:'最後に', text:'フッターにはライセンス・利用条件・最終更新日（自動）が表示されます。いつでも右上「❓チュートリアル」から再確認できます。', align:'top' }
+  ];
+
+  let cur = 0, tourActive = false;
+  function scrollToEl(el){
+    el.scrollIntoView({behavior:'smooth',block:'center',inline:'center'});
+  }
+  function place(step){
+    const el = document.querySelector(step.el);
+    if(!el){ return; }
+    const r = el.getBoundingClientRect();
+    const pad = 6;
+    // ハイライト
+    tourSpot.style.left = (r.left - pad) + 'px';
+    tourSpot.style.top = (r.top - pad) + 'px';
+    tourSpot.style.width = (r.width + pad*2) + 'px';
+    tourSpot.style.height = (r.height + pad*2) + 'px';
+
+    // テキスト
+    tourTitle.textContent = step.title || '';
+    tourText.textContent = step.text || '';
+    tourStep.textContent = (cur+1) + ' / ' + steps.length;
+
+    // ツールチップ配置
+    const box = tourBox.getBoundingClientRect(); // 直前の大きさ
+    let bx = r.left, by = r.bottom + 12; // デフォは下
+    if(step.align==='top'){ by = r.top - (box.height + 12); }
+    if(step.align==='right'){ bx = r.right + 12; by = r.top; }
+    if(step.align==='left'){ bx = r.left - (Math.min(box.width, 360) + 12); by = r.top; }
+    // 画面内に収める
+    const vw = window.innerWidth, vh = window.innerHeight;
+    bx = Math.max(12, Math.min(bx, vw - (box.width + 12)));
+    by = Math.max(12, Math.min(by, vh - (box.height + 12)));
+    tourBox.style.left = bx + 'px';
+    tourBox.style.top = by + 'px';
+
+    // ボタン状態
+    tourBack.disabled = cur===0;
+    tourNext.textContent = (cur===steps.length-1)?'完了':'次へ';
+  }
+  function show(i){
+    cur = Math.max(0, Math.min(i, steps.length-1));
+    const s = steps[cur];
+    if(s.ensure) s.ensure();
+    const target = document.querySelector(s.el);
+    if(target){ scrollToEl(target); setTimeout(()=>place(s), 260); }
+    else{ place(s); }
+  }
+  function startTutorial(){
+    tourActive = true;
+    tourOverlay.classList.add('active');
+    tourOverlay.setAttribute('aria-hidden','false');
+    show(0);
+  }
+  function endTutorial(){
+    tourActive = false;
+    tourOverlay.classList.remove('active');
+    tourOverlay.setAttribute('aria-hidden','true');
+  }
+
+  helpBtn.addEventListener('click', startTutorial);
+  tourNext.addEventListener('click', ()=>{ if(cur<steps.length-1){ show(cur+1); } else { endTutorial(); } });
+  tourBack.addEventListener('click', ()=> show(cur-1));
+  tourEnd.addEventListener('click', endTutorial);
+  tourDemoBtn.addEventListener('click', ()=>{ document.getElementById('sampleBtn').click(); });
+
+  window.addEventListener('resize', ()=>{ if(tourActive) place(steps[cur]); });
+  window.addEventListener('scroll', ()=>{ if(tourActive) place(steps[cur]); });
+  window.addEventListener('keydown', (e)=>{
+    if(!tourActive) return;
+    if(e.key==='Escape'){ endTutorial(); }
+    if(e.key==='ArrowRight'){ tourNext.click(); }
+    if(e.key==='ArrowLeft'){ tourBack.click(); }
+  });
+
+  // 初期配置
   relocateActions();
   updateRanges();
   compute();
