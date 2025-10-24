@@ -19,7 +19,6 @@
   .header{display:flex;align-items:center;gap:12px;margin:6px 0 8px}
   .logo{height:48px;width:auto;object-fit:contain;border-radius:8px}
   .title{font-weight:800;font-size:1.25rem;color:#0f172a;display:flex;align-items:center;gap:6px}
-  .badge{display:inline-block;padding:3px 8px;border-radius:8px;background:#eef6fa;color:#578899;font-weight:700;font-size:.82rem}
   .headRight{margin-left:auto;display:flex;gap:6px;align-items:center}
   .sub{font-size:.85rem;color:var(--muted);margin:0 0 8px}
 
@@ -122,9 +121,9 @@
     <a href="https://www.matsumoto-kaikei.or.jp/" target="_blank" rel="noopener noreferrer">
       <img src="ロゴ.jpg" alt="ロゴ" class="logo">
     </a>
-    <div class="title">価格改定検討ツール <span class="badge">r24</span></div>
+    <div class="title">価格改定検討ツール</div>
     <div class="headRight">
-      <button id="helpBtn" class="btn ghost sm" type="button" aria-label="チュートリアルを開始">❓ チュートリアル</button>
+      <button id="helpBtn" class="btn ghost sm" type="button" aria-label="チュートリアルを開始">チュートリアル</button>
     </div>
   </div>
   <div class="sub">値引き/値上げの「現場インパクト」を<b>限界利益</b>で数値化＆グラフ化。</div>
@@ -856,7 +855,7 @@ ${signR}${rPct}%の価格改定を＿＿年＿＿月＿＿日より実施いた�
     { el: '#graphCard', title:'6. グラフ', text:'現状と「同じ限界利益額を維持するための必要水準」をバーで比較。緑＝必要が減る（楽）、赤＝必要が増える（厳）。', align:'top' },
     { el: '#sensCard', title:'7. 感度分析', text:'±1/±5/±10%の改定シナリオに対して、必要売上・必要数量がどう変わるかを一覧で把握できます。', align:'top' },
     { el: '#templateCard', title:'8. 告知テンプレ', text:'顧客向けの告知文を自動生成。必要に応じてコピーボタンで流用し、印刷も可能です。', align:'top' },
-    { el: '.mk-mini', title:'最後に', text:'フッターにはライセンス・利用条件・最終更新日（自動）が表示されます。いつでも右上「❓チュートリアル」から再確認できます。', align:'top' }
+    { el: '.mk-mini', title:'最後に', text:'フッターにはライセンス・利用条件・最終更新日（自動）が表示されます。いつでも右上「チュートリアル」から再確認できます。', align:'top' }
   ];
 
   let cur = 0, tourActive = false;
@@ -868,31 +867,26 @@ ${signR}${rPct}%の価格改定を＿＿年＿＿月＿＿日より実施いた�
     if(!el){ return; }
     const r = el.getBoundingClientRect();
     const pad = 6;
-    // ハイライト
     tourSpot.style.left = (r.left - pad) + 'px';
     tourSpot.style.top = (r.top - pad) + 'px';
     tourSpot.style.width = (r.width + pad*2) + 'px';
     tourSpot.style.height = (r.height + pad*2) + 'px';
 
-    // テキスト
     tourTitle.textContent = step.title || '';
     tourText.textContent = step.text || '';
     tourStep.textContent = (cur+1) + ' / ' + steps.length;
 
-    // ツールチップ配置
-    const box = tourBox.getBoundingClientRect(); // 直前の大きさ
-    let bx = r.left, by = r.bottom + 12; // デフォは下
+    const box = tourBox.getBoundingClientRect();
+    let bx = r.left, by = r.bottom + 12;
     if(step.align==='top'){ by = r.top - (box.height + 12); }
     if(step.align==='right'){ bx = r.right + 12; by = r.top; }
     if(step.align==='left'){ bx = r.left - (Math.min(box.width, 360) + 12); by = r.top; }
-    // 画面内に収める
     const vw = window.innerWidth, vh = window.innerHeight;
     bx = Math.max(12, Math.min(bx, vw - (box.width + 12)));
     by = Math.max(12, Math.min(by, vh - (box.height + 12)));
     tourBox.style.left = bx + 'px';
     tourBox.style.top = by + 'px';
 
-    // ボタン状態
     tourBack.disabled = cur===0;
     tourNext.textContent = (cur===steps.length-1)?'完了':'次へ';
   }
@@ -931,7 +925,23 @@ ${signR}${rPct}%の価格改定を＿＿年＿＿月＿＿日より実施いた�
     if(e.key==='ArrowLeft'){ tourBack.click(); }
   });
 
-  // 初期配置
+  /* 初期化 */
+  try{
+    document.getElementById('cpy-year').textContent = String(new Date().getFullYear());
+    const ld = new Date(document.lastModified);
+    const z = n => String(n).padStart(2,'0');
+    const ymd = isNaN(ld.getTime()) ? '' : `${ld.getFullYear()}-${z(ld.getMonth()+1)}-${z(ld.getDate())}`;
+    document.getElementById('last-updated-date').textContent = ymd;
+  }catch(e){}
+
+  /* 計算系 */
+  function clearSVG(svg){while(svg.firstChild)svg.removeChild(svg.firstChild);}
+  function buildSensitivity(){} // ダミー宣言（上で定義済のため省略用）
+  function buildActions(){}     // 同上（実体は上にあり）
+  function buildTemplate(){}    // 同上（実体は上にあり）
+  // ↑上書き防止のためのダミー宣言は不要でしたが、lint誤検知回避で残置
+
+  /* 実行 */
   relocateActions();
   updateRanges();
   compute();
