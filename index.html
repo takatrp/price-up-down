@@ -5,6 +5,16 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>価格改定検討ツール r30</title>
 
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-L4493W828C"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-L4493W828C');
+</script>
+
 <link rel="icon" type="image/png" sizes="192x192" href="favicon192192.png">
 <link rel="apple-touch-icon" sizes="192x192" href="favicon192192.png">
 <link rel="shortcut icon" href="favicon192192.png">
@@ -84,7 +94,7 @@ html.tour-prep *, body.tour-prep *{transition:none !important}
 <body>
 <div class="wrap">
   <div class="header">
-    <a href="https://www.matsumoto-kaikei.or.jp/" target="_blank" rel="noopener noreferrer">
+    <a href="https://takatrp.github.io/tool-portal/" target="_blank" rel="noopener noreferrer">
       <img src="ロゴ.jpg" alt="ロゴ" class="logo" width="112" height="56">
     </a>
     <div class="title">価格改定検討ツール</div>
@@ -333,7 +343,7 @@ const qty=$('#qty'), qtyRange=$('#qtyRange'), revenue=$('#revenue'), revRange=$(
 const chgRange=$('#chgRange'), chgPct=$('#chgPct'), chgAbs=$('#chgAbs'), chgAbsRange=$('#chgAbsRange');
 const safetyBar=$('#safetyBar');
 const kpi_price2=$('#kpi_price2'), kpi_rev2=$('#kpi_rev2'), kpi_rev2diff=$('#kpi_rev2diff'), kpi_m2=$('#kpi_m2'), kpi_T2=$('#kpi_T2'), delta_m=$('#delta_m'), delta_T=$('#delta_T'), kpi_reqRev=$('#kpi_reqRev'), kpi_reqRevDiff=$('#kpi_reqRevDiff'), kpi_reqQty=$('#kpi_reqQty'), kpi_reqQtyDiff=$('#kpi_reqQtyDiff'), dangerMsg=$('#dangerMsg');
-const sensBody=$('#sensTable tbody'), actions=$('#actions'), templateArea=$('#templateArea'), actionsCard=$('#actionsCard'), sensCard=$('#sensCard');
+const sensBody=$('#sensTable tbody'), actions=$('#actions'), templateArea=$('#templateArea'), actionsCard=$('#actionsCard'), sensCard=$('#sensCard']);
 const statM=$('#statM'), statT=$('#statT'), statR=$('#statR'), stat_m_val=$('#stat_m_val'), stat_t_val=$('#stat_t_val'), stat_r_val=$('#stat_r_val');
 const revChart=$('#revChart'), qtyChart=$('#qtyChart'), lgRevOk=$('#lgRevOk'), lgRevOkLbl=$('#lgRevOkLbl'), lgRevWarn=$('#lgRevWarn'), lgRevWarnLbl=$('#lgRevWarnLbl'), lgQtyOk=$('#lgQtyOk'), lgQtyOkLbl=$('#lgQtyOkLbl'), lgQtyWarn=$('#lgQtyWarn'), lgQtyWarnLbl=$('#lgQtyWarnLbl');
 
@@ -407,7 +417,7 @@ const steps=[{el:'#price',title:'現在の単価（税抜）',text:'まず「現
 let cur=0, active=false;
 const getVP=()=>{const vv=visualViewport;return vv?{w:vv.width,h:vv.height}:{w:innerWidth,h:innerHeight};};
 function place(step){const el=(typeof step.el==='function')?document.querySelector(step.el()):document.querySelector(step.el);if(!el)return;const r=el.getBoundingClientRect(),pad=6;Object.assign(tourHole.style,{left:r.left-pad+'px',top:r.top-pad+'px',width:r.width+pad*2+'px',height:r.height+pad*2+'px'});Object.assign(tourSpot.style,{left:r.left-pad+'px',top:r.top-pad+'px',width:r.width+pad*2+'px',height:r.height+pad*2+'px'});tourStepBadge.textContent=`STEP ${cur+1} / ${steps.length}`;tourTitle.textContent=step.title||'';tourText.textContent=step.text||'';const box=tourBox.getBoundingClientRect(),vp=getVP();let bx=r.left,by=r.bottom+12;if(step.align==='top')by=r.top-(box.height+12);if(step.align==='right'){bx=r.right+12;by=r.top;}if(step.align==='left'){bx=r.left-(Math.min(box.width,380)+12);by=r.top;}bx=Math.max(12,Math.min(bx,vp.w-(box.width+12)));by=Math.max(12,Math.min(by,vp.h-(box.height+12)));tourBox.style.left=bx+'px';tourBox.style.top=by+'px';tourBack.disabled=cur===0;tourNext.textContent=(cur===steps.length-1)?'完了':'次へ';}
-async function show(i){cur=Math.max(0,Math.min(i,steps.length-1));const s=steps[cur];if(s.ensure)s.ensure();const el=(typeof s.el==='function')?document.querySelector(s.el()):document.querySelector(s.el);if(el){const r=el.getBoundingClientRect(),vp=getVP(),m=110;if(!(r.top>=m&&r.bottom<=vp.h-m)){const to=window.scrollY+r.top-(vp.h/2-r.height/2)-12;window.scrollTo({top:Math.max(0,to),behavior:'auto'});await waitScrollSettled();}}await nextFrame();await wait(40);place(s);setTimeout(()=>place(s),120);}
+async function show(i){cur=Math.max(0,Math.min(i,steps.length-1));const s=steps[cur];if(s.ensure)s.ensure();const el=(typeof s.el==='function')?document.querySelector(s.el()):document.querySelector(s.el);if(el){const r=el.getBoundingClientRect(),vp=getVP(),m=110;if(!(r.top>=m&&r.bottom<=vp.h-m)){const to=window.scrollY+r.top-(vp.h/2-r.height/2)-12;window.scrollTo({top=Math.max(0,to),behavior:'auto'});await waitScrollSettled();}}await nextFrame();await wait(40);place(s);setTimeout(()=>place(s),120);}
 async function start(){
   active=true;
   document.documentElement.classList.add('tour-prep');
