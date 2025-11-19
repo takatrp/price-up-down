@@ -20,7 +20,6 @@
 <link rel="shortcut icon" href="favicon192192.png">
 
 <style>
-/* ＝スタイルは r29 と同一＝ */
 :root{--brand:#578899;--ink:#1f2937;--muted:#6b7280;--bg:#f7fafc;--ok:#10b981;--warn:#ef4444;--card:#fff;--grid:#e5e7eb;}
 html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Hiragino Kaku Gothic ProN","Yu Gothic","Meiryo",sans-serif;}
 .wrap{max-width:1100px;margin:0 auto;padding:12px}
@@ -70,12 +69,21 @@ svg{width:100%;height:100%}
 .lg.cur{background:var(--brand)} .lg.req.ok{background:#10b981} .lg.req.warn{background:#ef4444}
 .dashboard{display:block}
 .colL,.colR{display:flex;flex-direction:column;gap:10px}
-@media (orientation:landscape){.dashboard{display:grid;grid-template-columns:minmax(300px,42%) 1fr;gap:10px;align-items:start}}
-@media (min-width:1024px){.dashboard{display:grid;grid-template-columns:380px 1fr;gap:10px;align-items:start}}
+@media (orientation:landscape){
+  .dashboard{display:grid;grid-template-columns:minmax(300px,42%) 1fr;gap:10px;align-items:start}
+}
+@media (min-width:1024px){
+  .dashboard{display:grid;grid-template-columns:380px 1fr;gap:10px;align-items:start}
+}
 .mk-mini{margin:16px auto 10px;max-width:1100px;color:#374151;font-size:.84rem;text-align:center}
 .mk-mini a{color:inherit;text-decoration:underline}
 .note{font-size:.8rem;color:#6b7280;text-align:center;margin-bottom:24px}
-@media print{.slider input[type="range"],button{display:none !important}.wrap{max-width:900px}}
+@media print{
+  .slider input[type="range"],button{display:none !important}
+  .wrap{max-width:900px}
+}
+
+/* Tutorial overlay */
 .tour-overlay{position:fixed;inset:0;z-index:9998;display:none}
 .tour-overlay.active{display:block}
 .tour-hole{position:fixed;pointer-events:none;border-radius:12px;box-shadow:0 0 0 9999px rgba(15,23,42,.55);z-index:9998;transition:all .18s ease}
@@ -87,8 +95,8 @@ svg{width:100%;height:100%}
 .tour-controls{display:flex;justify-content:flex-end;align-items:center;gap:8px;margin-top:10px}
 .tour-btn{padding:6px 10px;border-radius:8px;font-weight:700;font-size:.85rem;border:1px solid #d1d5db;background:#fff;color:#111827;cursor:pointer}
 .tour-btn.primary{background:var(--brand);border-color:var(--brand);color:#fff}
-html.tour-prep, body.tour-prep{scroll-behavior:auto !important}
-html.tour-prep *, body.tour-prep *{transition:none !important}
+html.tour-prep,body.tour-prep{scroll-behavior:auto !important}
+html.tour-prep *,body.tour-prep *{transition:none !important}
 </style>
 </head>
 <body>
@@ -191,7 +199,9 @@ html.tour-prep *, body.tour-prep *{transition:none !important}
         </div>
 
         <div class="hint" style="margin-top:6px">安全域インジケータ（値引き率が −m を超えると原価割れ）</div>
-        <div style="height:8px;border-radius:999px;background:#e5e7eb;overflow:hidden"><span id="safetyBar" style="display:block;height:100%;background:linear-gradient(90deg,var(--warn),#f59e0b,var(--ok));width:0%"></span></div>
+        <div style="height:8px;border-radius:999px;background:#e5e7eb;overflow:hidden">
+          <span id="safetyBar" style="display:block;height:100%;background:linear-gradient(90deg,var(--warn),#f59e0b,var(--ok));width:0%"></span>
+        </div>
       </div>
 
       <div class="card actions" id="actionsCard">
@@ -319,8 +329,6 @@ html.tour-prep *, body.tour-prep *{transition:none !important}
 
 <script>
 (function(){
-/* --- 省略せず r29 と同じロジック（計算/グラフ/感度/テンプレ/イベント）を掲載 --- */
-/* ユーティリティ等は r29 と同一。ここでは差分（startでサンプル自動投入）のみ強調コメントを付与 */
 const yen=n=>isFinite(n)?new Intl.NumberFormat('ja-JP',{style:'currency',currency:'JPY',maximumFractionDigits:0}).format(n):'—';
 const pct=x=>isFinite(x)?(x*100).toFixed(1).replace(/\.0$/,'')+'%':'—';
 const toNum=v=>{const s=String(v||'').replace(/,/g,'').replace(/[^\d.-]/g,'');const n=parseFloat(s);return isFinite(n)?n:NaN;}
@@ -332,7 +340,17 @@ const comma=(el,dec=null)=>{const n=toNum(el.value);if(!isFinite(n))return;
 };
 const nextFrame=()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
 const wait=(ms)=>new Promise(r=>setTimeout(r,ms));
-function waitScrollSettled(timeout=1200, quiet=150){return new Promise(resolve=>{let timer=null;const on=()=>{clearTimeout(timer);timer=setTimeout(()=>{rm();resolve();},quiet)};const rm=()=>{window.removeEventListener('scroll',on,true);window.removeEventListener('wheel',on,true)};window.addEventListener('scroll',on,true);window.addEventListener('wheel',on,true);on();setTimeout(()=>{rm();resolve();},timeout);});}
+function waitScrollSettled(timeout=1200, quiet=150){
+  return new Promise(resolve=>{
+    let timer=null;
+    const rm=()=>{window.removeEventListener('scroll',on,true);window.removeEventListener('wheel',on,true);}
+    const on=()=>{clearTimeout(timer);timer=setTimeout(()=>{rm();resolve();},quiet)}
+    window.addEventListener('scroll',on,true);
+    window.addEventListener('wheel',on,true);
+    on();
+    setTimeout(()=>{rm();resolve();},timeout);
+  });
+}
 
 let costMode='cost', volMode='qty', chgMode='rate';
 const $=s=>document.querySelector(s);
@@ -343,108 +361,557 @@ const qty=$('#qty'), qtyRange=$('#qtyRange'), revenue=$('#revenue'), revRange=$(
 const chgRange=$('#chgRange'), chgPct=$('#chgPct'), chgAbs=$('#chgAbs'), chgAbsRange=$('#chgAbsRange');
 const safetyBar=$('#safetyBar');
 const kpi_price2=$('#kpi_price2'), kpi_rev2=$('#kpi_rev2'), kpi_rev2diff=$('#kpi_rev2diff'), kpi_m2=$('#kpi_m2'), kpi_T2=$('#kpi_T2'), delta_m=$('#delta_m'), delta_T=$('#delta_T'), kpi_reqRev=$('#kpi_reqRev'), kpi_reqRevDiff=$('#kpi_reqRevDiff'), kpi_reqQty=$('#kpi_reqQty'), kpi_reqQtyDiff=$('#kpi_reqQtyDiff'), dangerMsg=$('#dangerMsg');
-const sensBody=$('#sensTable tbody'), actions=$('#actions'), templateArea=$('#templateArea'), actionsCard=$('#actionsCard'), sensCard=$('#sensCard']);
+const sensBody=$('#sensTable tbody'), actions=$('#actions'), templateArea=$('#templateArea'), actionsCard=$('#actionsCard'), sensCard=$('#sensCard');
 const statM=$('#statM'), statT=$('#statT'), statR=$('#statR'), stat_m_val=$('#stat_m_val'), stat_t_val=$('#stat_t_val'), stat_r_val=$('#stat_r_val');
 const revChart=$('#revChart'), qtyChart=$('#qtyChart'), lgRevOk=$('#lgRevOk'), lgRevOkLbl=$('#lgRevOkLbl'), lgRevWarn=$('#lgRevWarn'), lgRevWarnLbl=$('#lgRevWarnLbl'), lgQtyOk=$('#lgQtyOk'), lgQtyOkLbl=$('#lgQtyOkLbl'), lgQtyWarn=$('#lgQtyWarn'), lgQtyWarnLbl=$('#lgQtyWarnLbl');
 
 const isTwoCol=()=>matchMedia('(min-width:1024px)').matches||matchMedia('(orientation:landscape)').matches;
-function relocateActions(){ if(isTwoCol()){ const step2=$('.step2'); if(actionsCard.previousElementSibling!==step2) step2.insertAdjacentElement('afterend',actionsCard);} else { if(actionsCard.previousElementSibling!==sensCard) sensCard.insertAdjacentElement('afterend',actionsCard);} }
+function relocateActions(){
+  if(isTwoCol()){
+    const step2=$('.step2');
+    if(actionsCard.previousElementSibling!==step2) step2.insertAdjacentElement('afterend',actionsCard);
+  }else{
+    if(actionsCard.previousElementSibling!==sensCard) sensCard.insertAdjacentElement('afterend',actionsCard);
+  }
+}
 addEventListener('resize', ()=>{relocateActions(); compute();});
 
-function updateRanges(){ const P=toNum(price.value); const ok=isFinite(P)&&P>0;
+function updateRanges(){
+  const P=toNum(price.value); const ok=isFinite(P)&&P>0;
   costRange.min=0; costRange.max=ok?Math.floor(P):100000; costRange.step=1;
   qtyRange.min=0; qtyRange.max=10000; qtyRange.step=1;
   revRange.min=0; revRange.max=ok?Math.ceil(P*10000):3000000; revRange.step=1000;
   chgRange.min=-70; chgRange.max=70; chgRange.step=0.1;
   const absMax=ok?Math.ceil(P*2):200000; chgAbsRange.min=0; chgAbsRange.max=absMax; chgAbsRange.step=1;
-  const clampIO=(rng,inp,dec=null)=>{const v=toNum(inp.value); if(isFinite(v)){ const cl=clamp(v,Number(rng.min),Number(rng.max)); if(cl!==v){inp.value=dec===0?Math.round(cl).toLocaleString('ja-JP'):cl.toLocaleString('ja-JP');} rng.value=cl;} if(dec!==null) comma(inp,dec); else comma(inp);};
+  const clampIO=(rng,inp,dec=null)=>{
+    const v=toNum(inp.value);
+    if(isFinite(v)){
+      const cl=clamp(v,Number(rng.min),Number(rng.max));
+      if(cl!==v){inp.value=dec===0?Math.round(cl).toLocaleString('ja-JP'):cl.toLocaleString('ja-JP');}
+      rng.value=cl;
+    }
+    if(dec!==null) comma(inp,dec); else comma(inp);
+  };
   clampIO(costRange,cost); clampIO(qtyRange,qty,0); clampIO(revRange,revenue);
 }
 const clearSVG=svg=>{while(svg.firstChild)svg.removeChild(svg.firstChild);};
-function drawPairBar(svg,cur,req,isRev){ if(!isFinite(cur)){clearSVG(svg);return;} if(!isFinite(req)) req=cur; clearSVG(svg);
-  const vb=(svg.getAttribute('viewBox')||'0 0 360 116').split(' ').map(Number), W=vb[2], barH=18,gap=12,left=64,right=120;
+function drawPairBar(svg,cur,req,isRev){
+  if(!isFinite(cur)){clearSVG(svg);return;}
+  if(!isFinite(req)) req=cur;
+  clearSVG(svg);
+  const vb=(svg.getAttribute('viewBox')||'0 0 360 116').split(' ').map(Number),
+        W=vb[2], barH=18,gap=12,left=64,right=120;
   const maxV=Math.max(cur,req)*1.15||1, scale=(W-left-right)/maxV, y1=24,y2=y1+barH+gap;
-  const mk=(x1,y1,x2,y2,s='#e5e7eb')=>{const l=document.createElementNS('http://www.w3.org/2000/svg','line');l.setAttribute('x1',x1);l.setAttribute('y1',y1);l.setAttribute('x2',x2);l.setAttribute('y2',y2);l.setAttribute('stroke',s);l.setAttribute('stroke-width','1');svg.appendChild(l);};
-  mk(left,y1-12,left,y2+barH+10); [0.25,0.5,0.75,1].forEach(p=>{const xx=left+(W-left-right)*p;mk(xx,y1-12,xx,y2+barH+10);});
-  const txt=(x,y,t,a='end')=>{const tx=document.createElementNS('http://www.w3.org/2000/svg','text');tx.setAttribute('x',x);tx.setAttribute('y',y);tx.setAttribute('fill','#374151');tx.setAttribute('font-size','12');tx.setAttribute('text-anchor',a);tx.textContent=t;svg.appendChild(tx);};
+  const mk=(x1,y1,x2,y2,s='#e5e7eb')=>{
+    const l=document.createElementNS('http://www.w3.org/2000/svg','line');
+    l.setAttribute('x1',x1);l.setAttribute('y1',y1);l.setAttribute('x2',x2);l.setAttribute('y2',y2);
+    l.setAttribute('stroke',s);l.setAttribute('stroke-width','1');svg.appendChild(l);
+  };
+  mk(left,y1-12,left,y2+barH+10);
+  [0.25,0.5,0.75,1].forEach(p=>{const xx=left+(W-left-right)*p;mk(xx,y1-12,xx,y2+barH+10);});
+  const txt=(x,y,t,a='end')=>{
+    const tx=document.createElementNS('http://www.w3.org/2000/svg','text');
+    tx.setAttribute('x',x);tx.setAttribute('y',y);tx.setAttribute('fill','#374151');tx.setAttribute('font-size','12');tx.setAttribute('text-anchor',a);tx.textContent=t;svg.appendChild(tx);
+  };
   txt(left-10,y1+barH-5,'現状'); txt(left-10,y2+barH-5,'必要');
-  const rect=(x,y,w,h,fill)=>{const r=document.createElementNS('http://www.w3.org/2000/svg','rect');r.setAttribute('x',x);r.setAttribute('y',y);r.setAttribute('width',w);r.setAttribute('height',h);r.setAttribute('rx','6');r.setAttribute('fill',fill);svg.appendChild(r);};
-  const wCur=Math.max(2,cur*scale), wReq=Math.max(2,req*scale), up=req>cur; rect(left,y1,wCur,barH,'var(--brand)'); rect(left,y2,wReq,barH,up?'var(--warn)':'var(--ok)');
-  const rightX=W-8, fmt=isRev?(v)=>yen(v):(v)=>(Math.round(v*100)/100).toLocaleString('ja-JP')+' 単位'; txt(rightX,y1+barH-5,fmt(cur),'end'); txt(rightX,y2+barH-5,fmt(req),'end');
-  if(isRev){$('#lgRevOk').style.display=up?'none':'inline-block';$('#lgRevOkLbl').style.display=up?'none':'inline';$('#lgRevWarn').style.display=up?'inline-block':'none';$('#lgRevWarnLbl').style.display=up?'inline':'none';}
-  else{$('#lgQtyOk').style.display=up?'none':'inline-block';$('#lgQtyOkLbl').style.display=up?'none':'inline';$('#lgQtyWarn').style.display=up?'inline-block':'none';$('#lgQtyWarnLbl').style.display=up?'inline':'none';}
+  const rect=(x,y,w,h,fill)=>{
+    const r=document.createElementNS('http://www.w3.org/2000/svg','rect');
+    r.setAttribute('x',x);r.setAttribute('y',y);r.setAttribute('width',w);r.setAttribute('height',h);
+    r.setAttribute('rx','6');r.setAttribute('fill',fill);svg.appendChild(r);
+  };
+  const wCur=Math.max(2,cur*scale), wReq=Math.max(2,req*scale), up=req>cur;
+  rect(left,y1,wCur,barH,'var(--brand)');
+  rect(left,y2,wReq,barH,up?'var(--warn)':'var(--ok)');
+  const rightX=W-8, fmt=isRev?(v)=>yen(v):(v)=>(Math.round(v*100)/100).toLocaleString('ja-JP')+' 単位';
+  txt(rightX,y1+barH-5,fmt(cur),'end'); txt(rightX,y2+barH-5,fmt(req),'end');
+  if(isRev){
+    lgRevOk.style.display=up?'none':'inline-block'; lgRevOkLbl.style.display=up?'none':'inline';
+    lgRevWarn.style.display=up?'inline-block':'none'; lgRevWarnLbl.style.display=up?'inline':'none';
+  }else{
+    lgQtyOk.style.display=up?'none':'inline-block'; lgQtyOkLbl.style.display=up?'none':'inline';
+    lgQtyWarn.style.display=up?'inline-block':'none'; lgQtyWarnLbl.style.display=up?'inline':'none';
+  }
 }
-function safetyGauge(m,r){ if(!isFinite(m)||!isFinite(r)){safetyBar.style.width='0%';return;} const x=(r-(-m))/(0.3-(-m)); safetyBar.style.width=Math.min(100,Math.max(0,x*100)).toFixed(1)+'%'; }
-function buildSensitivity(base,steps){ const {P,C,m,Q,R0}=base, T0=(P-C)*Q; sensBody.innerHTML='';
-  steps.forEach(s=>{ const r=s/100,P2=P*(1+r),CM2=P2-C; let Qreq=NaN,Rreq=NaN,rr=NaN,rq=NaN; if(CM2>0){Qreq=T0/CM2;Rreq=P2*Qreq;rr=R0>0?(Rreq/R0-1):NaN;rq=Q>0?(Qreq/Q-1):NaN;}
-    const tr=document.createElement('tr'); tr.innerHTML=`<td>${s>0?'+':''}${s}%</td><td>${isFinite(Rreq)?yen(Rreq):'—'}</td><td>${isFinite(rr)?(rr>=0?'+':'')+(rr*100).toFixed(1)+'%':'—'}</td><td>${isFinite(Qreq)?(Math.round(Qreq*100)/100).toLocaleString('ja-JP')+' 単位':'—'}</td><td>${isFinite(rq)?(rq>=0?'+':'')+(rq*100).toFixed(1)+'%':'—'}</td>`; sensBody.appendChild(tr); });
+function safetyGauge(m,r){
+  if(!isFinite(m)||!isFinite(r)){safetyBar.style.width='0%';return;}
+  const x=(r-(-m))/(0.3-(-m));
+  safetyBar.style.width=Math.min(100,Math.max(0,x*100)).toFixed(1)+'%';
 }
-function buildTemplate(o){/* 省略：r29と同 */ const {r,P,P2,R0,Rreq,Q,Qreq,m,m2,T0,T2}=o;if(![r,P,P2].every(x=>isFinite(x))){templateArea.value='';return;}const rPct=(r*100).toFixed(1),signR=r>=0?'+':'';const Qfmt=v=>(Math.round(v*100)/100).toLocaleString('ja-JP');const R2=isFinite(Q)?P2*Q:NaN;const T0v=isFinite(T0)?T0:(isFinite(P)&&isFinite(Q)&&isFinite(m)?(P-(P*(1-m)))*Q:NaN);const T2v=isFinite(T2)?T2:(isFinite(P2)&&isFinite(Q)&&isFinite(m2)?(P2-(P2*(1-m2)))*Q:NaN);const impact=`・売上高（現状 → 改定後）　${isFinite(R0)?yen(R0):'—'} → ${isFinite(R2)?yen(R2):'—'}\n・限界利益率（現状 → 改定後）　${isFinite(m)?(m*100).toFixed(1)+'%':'—'} → ${isFinite(m2)?(m2*100).toFixed(1)+'%':'—'}\n・限界利益額（現状 → 改定後）　${isFinite(T0v)?yen(T0v):'—'} → ${isFinite(T2v)?yen(T2v):'—'}`;const keep=(isFinite(Rreq)||isFinite(Qreq))?`\n【同じ限界利益額を維持するために必要な水準（参考）】\n・必要売上　${isFinite(Rreq)?yen(Rreq):'—'}\n・必要数量　${isFinite(Qreq)?Qfmt(Qreq)+' 単位':'—'}\n`:'';templateArea.value=`件名：価格改定のご案内（適用開始日：＿＿＿年＿＿月＿＿日）\n\nいつも大変お世話になっております。\n＿＿＿＿（御社名）＿＿＿＿の＿＿（自社名）＿＿でございます。\n\nこのたび、誠に心苦しいお願いではございますが、下記のとおり価格改定を実施させていただきたく存じます。\n\n【改定内容】\n・改定率　：${signR}${rPct}%　\n・単価　　：${yen(P)} → ${yen(P2)}（税抜）\n・対象　　：＿＿＿＿（商品・サービス名、型番 等）\n・適用開始：＿＿＿年＿＿月＿＿日ご注文分より\n\n【お客様への影響（目安）】\n${impact}\n\n${keep}【代替案／ご協議の選択肢】\n・長期契約／定期発注による価格据置や緩和\n・まとめ買い条件、仕様簡素化、納期調整 等のご提案\n\n【お問い合わせ】担当：＿＿＿＿　TEL：＿＿＿＿　Mail：＿＿＿＿`; }
-function buildActions(r,m){const list=[];if(!isFinite(r)||!isFinite(m)){actions.innerHTML='';return;}if(r<0){list.push('最低受注金額・最低ロットを即日設定（無償作業の抑止）','値引きの代替：納期延長／仕様簡素化／数量条件（価格は死守）','Top10顧客の割引承認フロー導入（根拠を記録）');}else if(r>0){list.push('主要顧客へ30日前告知：改定率・適用日・背景を明文化','まとめ買い・長期契約等の代替案で軟着陸','見積・価格表・EC・店頭の同時更新（チェックリスト運用）');}else{list.push('商品別の限界利益率を棚卸し：下位20%の値付け/条件見直し','割引上限1%/案件・累計3%/月のレビュー制','四半期ごとに原価変動の自動転嫁シナリオ作成');}actions.innerHTML=list.map(x=>`<li>${x}</li>`).join('');}
-function getInputs(){const P=toNum(price.value);let m=null,C=null;if(costMode==='cost'){const Cval=toNum(cost.value);if(isFinite(P)&&isFinite(Cval)&&P>0&&Cval>=0&&Cval<=P){C=Cval;m=(P-C)/P;}}else{const mr=toNum(mrate.value);if(isFinite(P)&&isFinite(mr)&&P>0&&mr>=0&&mr<100){m=mr/100;C=P*(1-m);}}let Q=null,R0=null;if(volMode==='qty'){const Qv=toNum(qty.value);if(isFinite(P)&&isFinite(Qv)&&P>0&&Qv>=0){Q=Qv;R0=P*Q;}}else{const Rv=toNum(revenue.value);if(isFinite(P)&&isFinite(Rv)&&P>0&&Rv>=0){R0=Rv;Q=R0/P;}}let r=NaN,P2=NaN;if(chgMode==='rate'){const raw=String(chgPct.value).trim().replace(/[％%]/g,'');const partial=/^-?$|^-?\d+\.?$/.test(raw);if(!partial){const num=parseFloat(raw);if(isFinite(num)) r=clamp(num,-70,70)/100;}if(isFinite(P)&&isFinite(r))P2=P*(1+r);}else{const A=toNum(chgAbs.value);if(isFinite(P)&&isFinite(A)&&P>0){P2=A;r=P2/P-1;}}return {P,C,m,Q,R0,r,P2};}
-function drawEmptyCharts(R0,Q0){drawPairBar(revChart,R0,NaN,true);drawPairBar(qtyChart,Q0,NaN,false);}
-function compute(){updateRanges();const {P,C,m,Q,R0,r,P2}=getInputs();if(isFinite(P)&&isFinite(C)&&P>0&&C>=0&&C<=P){statM.classList.remove('hide');stat_m_val.textContent=pct((P-C)/P);const Qv=isFinite(Q)?Q:(isFinite(R0)&&isFinite(P)?R0/P:NaN);if(isFinite(Qv)){const T0=(P-C)*Qv;statT.classList.remove('hide');stat_t_val.textContent=yen(T0);const Rv0=P*Qv;statR.classList.remove('hide');stat_r_val.textContent=yen(Rv0);}else{statT.classList.add('hide');statR.classList.add('hide');stat_t_val.textContent='—';stat_r_val.textContent='—';}}else{[statM,statT,statR].forEach(x=>x.classList.add('hide'));stat_m_val.textContent='—';stat_t_val.textContent='—';stat_r_val.textContent='—';}
-kpi_price2.textContent=isFinite(P2)?yen(P2):'—';if(chgMode==='rate'&&isFinite(P)&&isFinite(r)){const P2s=P*(1+r);const cl=clamp(P2s,Number(chgAbsRange.min),Number(chgAbsRange.max));chgAbs.value=Math.round(cl).toLocaleString('ja-JP');chgAbsRange.value=cl;}
-if(chgMode==='abs'&&isFinite(P)&&isFinite(P2)){const rCalc=(P2/P-1)*100;chgRange.value=rCalc.toFixed(1);if(document.activeElement!==chgPct){chgPct.value=rCalc.toFixed(1);}}
-[kpi_m2,kpi_T2,kpi_reqRev,kpi_reqRevDiff,kpi_reqQty,kpi_reqQtyDiff,delta_m,delta_T].forEach(el=>{el.textContent=el.id.includes('delta')?'現状比 —':'—';});kpi_rev2.textContent='—';kpi_rev2diff.textContent='現状比 —';dangerMsg.classList.add('hide');
-const Qv=isFinite(Q)?Q:(isFinite(R0)&&isFinite(P)?R0/P:NaN);const Rv0=isFinite(P)&&isFinite(Qv)?P*Qv:NaN;drawEmptyCharts(Rv0,Qv);
-if(!(isFinite(P)&&isFinite(C)&&isFinite(P2)&&isFinite(Qv))){safetyBar.style.width='0%';sensBody.innerHTML='';actions.innerHTML='';templateArea.value='';return;}
-const CM=P-C,CM2=P2-C,m2=CM2/P2,rEff=(P2/P-1);const T0=CM*Qv,T2=CM2*Qv;const R2=P2*Qv;kpi_rev2.textContent=yen(R2);if(isFinite(Rv0))kpi_rev2diff.textContent='現状比 '+(R2-Rv0>=0?'+':'')+yen(R2-Rv0);safetyGauge(m,rEff);kpi_m2.textContent=pct(m2);const dm=(m2-m)*100;delta_m.textContent='現状比 '+(dm>=0?'+':'')+dm.toFixed(1)+'pt';kpi_T2.textContent=yen(T2);const dT=T2-T0;delta_T.textContent='現状比 '+(dT>=0?'+':'')+yen(dT);if(m2<=0||!isFinite(m2)){dangerMsg.classList.remove('hide');dangerMsg.textContent='警告：この値引き率では限界利益が0以下（原価割れ）です。';}
-let Qreq,Rreq,dQ,dR;if(CM2>0){Qreq=T0/CM2;Rreq=P2*Qreq;dQ=Qreq-Qv;dR=Rreq-Rv0;}
-if(isFinite(Rreq)){kpi_reqRev.textContent=yen(Rreq);const ratioR=Rv0>0?(Rreq/Rv0-1):0;kpi_reqRevDiff.textContent=(ratioR>=0?'現状比 +':'現状比 ')+(ratioR*100).toFixed(1)+'% （差額 '+yen(dR)+'）';}
-if(isFinite(Qreq)){kpi_reqQty.textContent=(Math.round(Qreq*100)/100).toLocaleString('ja-JP')+' 単位';const ratioQ=Qv>0?(Qreq/Qv-1):0,sign=ratioQ>=0?'+':'';kpi_reqQtyDiff.textContent=`現状比 ${sign}${(ratioQ*100).toFixed(1)}% （差分 ${(Math.round(dQ*100)/100).toLocaleString('ja-JP')} 単位）`;}
-drawPairBar(revChart,Rv0,Rreq,true);drawPairBar(qtyChart,Qv,Qreq,false);buildSensitivity({P,C,m,Q:Qv,R0:Rv0},[-10,-5,-1,1,5,10]);buildActions(rEff,m);buildTemplate({r:rEff,P,P2,R0:Rv0,Rreq,Q:Qv,Qreq,m,m2,T0,T2});}
-const bind=(rangeEl,inputEl,dec=null)=>{rangeEl.addEventListener('input',()=>{const v=Number(rangeEl.value);inputEl.value=dec===0?Math.round(v).toLocaleString('ja-JP'):v.toLocaleString('ja-JP');compute();});inputEl.addEventListener('input',()=>{if(inputEl.value===''){compute();return;}comma(inputEl,dec);const v=toNum(inputEl.value);if(isFinite(v))rangeEl.value=clamp(v,Number(rangeEl.min),Number(rangeEl.max));compute();});};
-bind(costRange,cost);bind(mrateRange,mrate);bind(qtyRange,qty,0);bind(revRange,revenue);bind(chgAbsRange,chgAbs);
-function onRateTextInput(){const raw=chgPct.value.trim().replace(/[％%]/g,'');if(/^-?$|^-?\d+\.?$/.test(raw)){compute();return;}const num=parseFloat(raw);if(isFinite(num)){const cl=clamp(num,-70,70);chgRange.value=cl.toFixed(1);}compute();}
-function onRateTextCommit(){const num=parseFloat(String(chgPct.value).replace(/[,%％]/g,''));if(isFinite(num)){const cl=clamp(num,-70,70);chgPct.value=cl.toFixed(1);chgRange.value=cl.toFixed(1);}compute();}
-chgPct.addEventListener('input',onRateTextInput);chgPct.addEventListener('change',onRateTextCommit);chgPct.addEventListener('blur',onRateTextCommit);
-chgRange.addEventListener('input',()=>{if(document.activeElement!==chgPct){chgPct.value=Number(chgRange.value).toFixed(1);}compute();});
-price.addEventListener('input',()=>{if(price.value!=='')comma(price);updateRanges();compute();});
-function setCostMode(mode){costMode=mode;if(mode==='cost'){chipCost.classList.add('active');chipMrate.classList.remove('active');blockCost.classList.remove('hide');blockMrate.classList.add('hide');}else{chipMrate.classList.add('active');chipCost.classList.remove('active');blockCost.classList.add('hide');blockMrate.classList.remove('hide');}updateRanges();compute();}
-function setVolMode(mode){volMode=mode;if(mode==='qty'){chipQty.classList.add('active');chipRev.classList.remove('active');blockQty.classList.remove('hide');blockRev.classList.add('hide');}else{chipRev.classList.add('active');chipQty.classList.remove('active');blockQty.classList.add('hide');blockRev.classList.remove('hide');}updateRanges();compute();}
-function setChgMode(mode){chgMode=mode;if(mode==='rate'){$('#rateInputs').classList.remove('hide');$('#absInputs').classList.add('hide');chipRate.classList.add('active');chipAbs.classList.remove('active');}else{$('#rateInputs').classList.add('hide');$('#absInputs').classList.remove('hide');chipAbs.classList.add('active');chipRate.classList.remove('active');if(!chgAbs.value){const P=toNum(price.value);if(isFinite(P)&&P>0){chgAbs.value=Math.round(P).toLocaleString('ja-JP');}}}updateRanges();compute();}
-chipCost.addEventListener('click',()=>setCostMode('cost'));chipMrate.addEventListener('click',()=>setCostMode('mrate'));chipQty.addEventListener('click',()=>setVolMode('qty'));chipRev.addEventListener('click',()=>setVolMode('rev'));chipRate.addEventListener('click',()=>setChgMode('rate'));chipAbs.addEventListener('click',()=>setChgMode('abs'));
-async function loadSample({keepScroll=true} = {}){const y=window.scrollY;setCostMode('cost');setVolMode('qty');setChgMode('rate');price.value='1,200';cost.value='720';qty.value='1,000';chgRange.value='-5.0';chgPct.value='-5.0';chgAbs.value='';updateRanges();costRange.value=720;qtyRange.value=1000;compute();await nextFrame();await wait(80);if(keepScroll)window.scrollTo({top:y,left:0,behavior:'auto'});}
+function buildSensitivity(base,steps){
+  const {P,C,Q,R0}=base, T0=(P-C)*Q;
+  sensBody.innerHTML='';
+  steps.forEach(s=>{
+    const r=s/100,P2=P*(1+r),CM2=P2-C;
+    let Qreq=NaN,Rreq=NaN,rr=NaN,rq=NaN;
+    if(CM2>0){
+      Qreq=T0/CM2;
+      Rreq=P2*Qreq;
+      rr=R0>0?(Rreq/R0-1):NaN;
+      rq=Q>0?(Qreq/Q-1):NaN;
+    }
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td>${s>0?'+':''}${s}%</td><td>${isFinite(Rreq)?yen(Rreq):'—'}</td><td>${isFinite(rr)?(rr>=0?'+':'')+(rr*100).toFixed(1)+'%':'—'}</td><td>${isFinite(Qreq)?(Math.round(Qreq*100)/100).toLocaleString('ja-JP')+' 単位':'—'}</td><td>${isFinite(rq)?(rq>=0?'+':'')+(rq*100).toFixed(1)+'%':'—'}</td>`;
+    sensBody.appendChild(tr);
+  });
+}
+function buildTemplate(o){
+  const {r,P,P2,R0,Rreq,Q,Qreq,m,m2,T0,T2}=o;
+  if(![r,P,P2].every(x=>isFinite(x))){templateArea.value='';return;}
+  const rPct=(r*100).toFixed(1),signR=r>=0?'+':'';
+  const Qfmt=v=>(Math.round(v*100)/100).toLocaleString('ja-JP');
+  const R2=isFinite(Q)?P2*Q:NaN;
+  const T0v=isFinite(T0)?T0:(isFinite(P)&&isFinite(Q)&&isFinite(m)?(P-(P*(1-m)))*Q:NaN);
+  const T2v=isFinite(T2)?T2:(isFinite(P2)&&isFinite(Q)&&isFinite(m2)?(P2-(P2*(1-m2)))*Q:NaN);
+  const impact=
+`・売上高（現状 → 改定後）　${isFinite(R0)?yen(R0):'—'} → ${isFinite(R2)?yen(R2):'—'}
+・限界利益率（現状 → 改定後）　${isFinite(m)?(m*100).toFixed(1)+'%':'—'} → ${isFinite(m2)?(m2*100).toFixed(1)+'%':'—'}
+・限界利益額（現状 → 改定後）　${isFinite(T0v)?yen(T0v):'—'} → ${isFinite(T2v)?yen(T2v):'—'}`;
+  const keep=(isFinite(Rreq)||isFinite(Qreq))?
+`\n【同じ限界利益額を維持するために必要な水準（参考）】
+・必要売上　${isFinite(Rreq)?yen(Rreq):'—'}
+・必要数量　${isFinite(Qreq)?Qfmt(Qreq)+' 単位':'—'}
+`:'';
+  templateArea.value=
+`件名：価格改定のご案内（適用開始日：＿＿＿年＿＿月＿＿日）
+
+いつも大変お世話になっております。
+＿＿＿＿（御社名）＿＿＿＿の＿＿（自社名）＿＿でございます。
+
+このたび、誠に心苦しいお願いではございますが、下記のとおり価格改定を実施させていただきたく存じます。
+
+【改定内容】
+・改定率　：${signR}${rPct}%　
+・単価　　：${yen(P)} → ${yen(P2)}（税抜）
+・対象　　：＿＿＿＿（商品・サービス名、型番 等）
+・適用開始：＿＿＿年＿＿月＿＿日ご注文分より
+
+【お客様への影響（目安）】
+${impact}
+
+${keep}【代替案／ご協議の選択肢】
+・長期契約／定期発注による価格据置や緩和
+・まとめ買い条件、仕様簡素化、納期調整 等のご提案
+
+【お問い合わせ】担当：＿＿＿＿　TEL：＿＿＿＿　Mail：＿＿＿＿`;
+}
+function buildActions(r,m){
+  const list=[];
+  if(!isFinite(r)||!isFinite(m)){actions.innerHTML='';return;}
+  if(r<0){
+    list.push(
+      '最低受注金額・最低ロットを即日設定（無償作業の抑止）',
+      '値引きの代替：納期延長／仕様簡素化／数量条件（価格は死守）',
+      'Top10顧客の割引承認フロー導入（根拠を記録）'
+    );
+  }else if(r>0){
+    list.push(
+      '主要顧客へ30日前告知：改定率・適用日・背景を明文化',
+      'まとめ買い・長期契約等の代替案で軟着陸',
+      '見積・価格表・EC・店頭の同時更新（チェックリスト運用）'
+    );
+  }else{
+    list.push(
+      '商品別の限界利益率を棚卸し：下位20%の値付け/条件見直し',
+      '割引上限1%/案件・累計3%/月のレビュー制',
+      '四半期ごとに原価変動の自動転嫁シナリオ作成'
+    );
+  }
+  actions.innerHTML=list.map(x=>`<li>${x}</li>`).join('');
+}
+function getInputs(){
+  const P=toNum(price.value);
+  let m=null,C=null;
+  if(costMode==='cost'){
+    const Cval=toNum(cost.value);
+    if(isFinite(P)&&isFinite(Cval)&&P>0&&Cval>=0&&Cval<=P){C=Cval;m=(P-C)/P;}
+  }else{
+    const mr=toNum(mrate.value);
+    if(isFinite(P)&&isFinite(mr)&&P>0&&mr>=0&&mr<100){m=mr/100;C=P*(1-m);}
+  }
+  let Q=null,R0=null;
+  if(volMode==='qty'){
+    const Qv=toNum(qty.value);
+    if(isFinite(P)&&isFinite(Qv)&&P>0&&Qv>=0){Q=Qv;R0=P*Q;}
+  }else{
+    const Rv=toNum(revenue.value);
+    if(isFinite(P)&&isFinite(Rv)&&P>0&&Rv>=0){R0=Rv;Q=R0/P;}
+  }
+  let r=NaN,P2=NaN;
+  if(chgMode==='rate'){
+    const raw=String(chgPct.value).trim().replace(/[％%]/g,'');
+    const partial=/^-?$|^-?\d+\.?$/.test(raw);
+    if(!partial){
+      const num=parseFloat(raw);
+      if(isFinite(num)) r=clamp(num,-70,70)/100;
+    }
+    if(isFinite(P)&&isFinite(r))P2=P*(1+r);
+  }else{
+    const A=toNum(chgAbs.value);
+    if(isFinite(P)&&isFinite(A)&&P>0){P2=A;r=P2/P-1;}
+  }
+  return {P,C,m,Q,R0,r,P2};
+}
+function drawEmptyCharts(R0,Q0){
+  drawPairBar(revChart,R0,NaN,true);
+  drawPairBar(qtyChart,Q0,NaN,false);
+}
+function compute(){
+  updateRanges();
+  const {P,C,m,Q,R0,r,P2}=getInputs();
+  if(isFinite(P)&&isFinite(C)&&P>0&&C>=0&&C<=P){
+    statM.classList.remove('hide');
+    stat_m_val.textContent=pct((P-C)/P);
+    const Qv=isFinite(Q)?Q:(isFinite(R0)&&isFinite(P)?R0/P:NaN);
+    if(isFinite(Qv)){
+      const T0=(P-C)*Qv;
+      statT.classList.remove('hide');
+      stat_t_val.textContent=yen(T0);
+      const Rv0=P*Qv;
+      statR.classList.remove('hide');
+      stat_r_val.textContent=yen(Rv0);
+    }else{
+      statT.classList.add('hide');statR.classList.add('hide');
+      stat_t_val.textContent='—';stat_r_val.textContent='—';
+    }
+  }else{
+    [statM,statT,statR].forEach(x=>x.classList.add('hide'));
+    stat_m_val.textContent='—';stat_t_val.textContent='—';stat_r_val.textContent='—';
+  }
+
+  kpi_price2.textContent=isFinite(P2)?yen(P2):'—';
+
+  if(chgMode==='rate'&&isFinite(P)&&isFinite(r)){
+    const P2s=P*(1+r);
+    const cl=clamp(P2s,Number(chgAbsRange.min),Number(chgAbsRange.max));
+    chgAbs.value=Math.round(cl).toLocaleString('ja-JP');
+    chgAbsRange.value=cl;
+  }
+  if(chgMode==='abs'&&isFinite(P)&&isFinite(P2)){
+    const rCalc=(P2/P-1)*100;
+    chgRange.value=rCalc.toFixed(1);
+    if(document.activeElement!==chgPct){chgPct.value=rCalc.toFixed(1);}
+  }
+
+  [kpi_m2,kpi_T2,kpi_reqRev,kpi_reqRevDiff,kpi_reqQty,kpi_reqQtyDiff,delta_m,delta_T]
+    .forEach(el=>{el.textContent=el.id.includes('delta')?'現状比 —':'—';});
+  kpi_rev2.textContent='—';
+  kpi_rev2diff.textContent='現状比 —';
+  dangerMsg.classList.add('hide');
+
+  const Qv=isFinite(Q)?Q:(isFinite(R0)&&isFinite(P)?R0/P:NaN);
+  const Rv0=isFinite(P)&&isFinite(Qv)?P*Qv:NaN;
+  drawEmptyCharts(Rv0,Qv);
+
+  if(!(isFinite(P)&&isFinite(C)&&isFinite(P2)&&isFinite(Qv))){
+    safetyBar.style.width='0%';
+    sensBody.innerHTML=''; actions.innerHTML=''; templateArea.value='';
+    return;
+  }
+
+  const CM=P-C,CM2=P2-C,m2=CM2/P2,rEff=(P2/P-1);
+  const T0=CM*Qv,T2=CM2*Qv;
+  const R2=P2*Qv;
+  kpi_rev2.textContent=yen(R2);
+  if(isFinite(Rv0))kpi_rev2diff.textContent='現状比 '+(R2-Rv0>=0?'+':'')+yen(R2-Rv0);
+  safetyGauge(m,rEff);
+  kpi_m2.textContent=pct(m2);
+  const dm=(m2-m)*100;
+  delta_m.textContent='現状比 '+(dm>=0?'+':'')+dm.toFixed(1)+'pt';
+  kpi_T2.textContent=yen(T2);
+  const dT=T2-T0;
+  delta_T.textContent='現状比 '+(dT>=0?'+':'')+yen(dT);
+  if(m2<=0||!isFinite(m2)){
+    dangerMsg.classList.remove('hide');
+    dangerMsg.textContent='警告：この値引き率では限界利益が0以下（原価割れ）です。';
+  }
+
+  let Qreq,Rreq,dQ,dR;
+  if(CM2>0){
+    Qreq=T0/CM2;
+    Rreq=P2*Qreq;
+    dQ=Qreq-Qv;
+    dR=Rreq-Rv0;
+  }
+
+  if(isFinite(Rreq)){
+    kpi_reqRev.textContent=yen(Rreq);
+    const ratioR=Rv0>0?(Rreq/Rv0-1):0;
+    kpi_reqRevDiff.textContent=(ratioR>=0?'現状比 +':'現状比 ')+(ratioR*100).toFixed(1)+'% （差額 '+yen(dR)+'）';
+  }
+  if(isFinite(Qreq)){
+    kpi_reqQty.textContent=(Math.round(Qreq*100)/100).toLocaleString('ja-JP')+' 単位';
+    const ratioQ=Qv>0?(Qreq/Qv-1):0,sign=ratioQ>=0?'+':'';
+    kpi_reqQtyDiff.textContent=`現状比 ${sign}${(ratioQ*100).toFixed(1)}% （差分 ${(Math.round(dQ*100)/100).toLocaleString('ja-JP')} 単位）`;
+  }
+
+  drawPairBar(revChart,Rv0,Rreq,true);
+  drawPairBar(qtyChart,Qv,Qreq,false);
+  buildSensitivity({P,C,Q:Qv,R0:Rv0},[-10,-5,-1,1,5,10]);
+  buildActions(rEff,m);
+  buildTemplate({r:rEff,P,P2,R0:Rv0,Rreq,Q:Qv,Qreq,m,m2,T0,T2});
+}
+const bind=(rangeEl,inputEl,dec=null)=>{
+  rangeEl.addEventListener('input',()=>{
+    const v=Number(rangeEl.value);
+    inputEl.value=dec===0?Math.round(v).toLocaleString('ja-JP'):v.toLocaleString('ja-JP');
+    compute();
+  });
+  inputEl.addEventListener('input',()=>{
+    if(inputEl.value===''){compute();return;}
+    comma(inputEl,dec);
+    const v=toNum(inputEl.value);
+    if(isFinite(v))rangeEl.value=clamp(v,Number(rangeEl.min),Number(rangeEl.max));
+    compute();
+  });
+};
+bind(costRange,cost);
+bind(mrateRange,mrate);
+bind(qtyRange,qty,0);
+bind(revRange,revenue);
+bind(chgAbsRange,chgAbs);
+
+function onRateTextInput(){
+  const raw=chgPct.value.trim().replace(/[％%]/g,'');
+  if(/^-?$|^-?\d+\.?$/.test(raw)){compute();return;}
+  const num=parseFloat(raw);
+  if(isFinite(num)){
+    const cl=clamp(num,-70,70);
+    chgRange.value=cl.toFixed(1);
+  }
+  compute();
+}
+function onRateTextCommit(){
+  const num=parseFloat(String(chgPct.value).replace(/[,%％]/g,''));
+  if(isFinite(num)){
+    const cl=clamp(num,-70,70);
+    chgPct.value=cl.toFixed(1);
+    chgRange.value=cl.toFixed(1);
+  }
+  compute();
+}
+chgPct.addEventListener('input',onRateTextInput);
+chgPct.addEventListener('change',onRateTextCommit);
+chgPct.addEventListener('blur',onRateTextCommit);
+chgRange.addEventListener('input',()=>{
+  if(document.activeElement!==chgPct){
+    chgPct.value=Number(chgRange.value).toFixed(1);
+  }
+  compute();
+});
+
+price.addEventListener('input',()=>{
+  if(price.value!=='')comma(price);
+  updateRanges();
+  compute();
+});
+
+function setCostMode(mode){
+  costMode=mode;
+  if(mode==='cost'){
+    chipCost.classList.add('active');chipMrate.classList.remove('active');
+    blockCost.classList.remove('hide');blockMrate.classList.add('hide');
+  }else{
+    chipMrate.classList.add('active');chipCost.classList.remove('active');
+    blockCost.classList.add('hide');blockMrate.classList.remove('hide');
+  }
+  updateRanges();compute();
+}
+function setVolMode(mode){
+  volMode=mode;
+  if(mode==='qty'){
+    chipQty.classList.add('active');chipRev.classList.remove('active');
+    blockQty.classList.remove('hide');blockRev.classList.add('hide');
+  }else{
+    chipRev.classList.add('active');chipQty.classList.remove('active');
+    blockQty.classList.add('hide');blockRev.classList.remove('hide');
+  }
+  updateRanges();compute();
+}
+function setChgMode(mode){
+  chgMode=mode;
+  if(mode==='rate'){
+    $('#rateInputs').classList.remove('hide');
+    $('#absInputs').classList.add('hide');
+    chipRate.classList.add('active');chipAbs.classList.remove('active');
+  }else{
+    $('#rateInputs').classList.add('hide');
+    $('#absInputs').classList.remove('hide');
+    chipAbs.classList.add('active');chipRate.classList.remove('active');
+    if(!chgAbs.value){
+      const P=toNum(price.value);
+      if(isFinite(P)&&P>0){chgAbs.value=Math.round(P).toLocaleString('ja-JP');}
+    }
+  }
+  updateRanges();compute();
+}
+chipCost.addEventListener('click',()=>setCostMode('cost'));
+chipMrate.addEventListener('click',()=>setCostMode('mrate'));
+chipQty.addEventListener('click',()=>setVolMode('qty'));
+chipRev.addEventListener('click',()=>setVolMode('rev'));
+chipRate.addEventListener('click',()=>setChgMode('rate'));
+chipAbs.addEventListener('click',()=>setChgMode('abs'));
+
+async function loadSample(opts){
+  const keepScroll = !opts || opts.keepScroll !== false;
+  const y=window.scrollY;
+  setCostMode('cost');
+  setVolMode('qty');
+  setChgMode('rate');
+  price.value='1,200';
+  cost.value='720';
+  qty.value='1,000';
+  chgRange.value='-5.0';
+  chgPct.value='-5.0';
+  chgAbs.value='';
+  updateRanges();
+  costRange.value=720;
+  qtyRange.value=1000;
+  compute();
+  await nextFrame();
+  await wait(80);
+  if(keepScroll)window.scrollTo({top:y,left:0,behavior:'auto'});
+}
 $('#sampleBtn').addEventListener('click',()=>{loadSample();});
-$('#resetBtn').addEventListener('click',()=>{[price,cost,mrate,qty,revenue,chgPct,chgAbs].forEach(el=>el.value='');chgRange.value='0.0';setCostMode('cost');setVolMode('qty');setChgMode('rate');updateRanges();compute();});
+$('#resetBtn').addEventListener('click',()=>{
+  [price,cost,mrate,qty,revenue,chgPct,chgAbs].forEach(el=>el.value='');
+  chgRange.value='0.0';
+  setCostMode('cost');setVolMode('qty');setChgMode('rate');
+  updateRanges();compute();
+});
 $('#printBtn').addEventListener('click',()=>{try{window.print();}catch(e){}});
-$('#copyResultBtn').addEventListener('click',()=>{const text=$('#resultCard').innerText||'';if(navigator.clipboard){navigator.clipboard.writeText(text);}});
-$('#copyTemplateBtn').addEventListener('click',()=>{if(navigator.clipboard){navigator.clipboard.writeText(templateArea.value||'');}});
-try{ $('#cpy-year').textContent=String(new Date().getFullYear()); const ld=new Date(document.lastModified); const z=n=>String(n).padStart(2,'0'); const ymd=isNaN(ld.getTime())?'':`${ld.getFullYear()}-${z(ld.getMonth()+1)}-${z(ld.getDate())}`; $('#last-updated-date').textContent=ymd; }catch(e){}
-const helpBtn=$('#helpBtn'), tourOverlay=$('#tourOverlay'), tourHole=$('#tourHole'), tourSpot=$('#tourSpot'), tourBox=$('#tourBox'), tourStepBadge=$('#tourStepBadge'), tourTitle=$('#tourTitle'), tourText=$('#tourText'), tourNext=$('#tourNext'), tourBack=$('#tourBack'), tourEnd=$('#tourEnd');
-const steps=[{el:'#price',title:'現在の単価（税抜）',text:'まず「現在の単価」を入力します。カンマ整形・範囲調整は自動。',align:'bottom'},{el:'#chipsCostGroup',title:'原価 or 限界利益率',text:'入力方式を切り替えます。どちらか一方でOK。',align:'bottom'},{el:'#blockCost',title:'原価（変動費）入力',text:'スライダー/直接入力。原価は「現在の単価」を上限に自動クランプ。',align:'right',ensure:()=>{if(costMode!=='cost')setCostMode('cost');}},{el:'#chipsVolGroup',title:'数量 or 売上高',text:'ボリュームの入力方法を選択（チップで切替）。',align:'bottom'},{el:()=> (volMode==='qty' ? '#blockQty' : '#blockRev'),title:'ボリューム入力',text:'選んだ方式で入力（スライダー/直接）。',align:'bottom'},{el:'#chipsChgGroup',title:'改定方式',text:'「値改定率」か「改定後単価」を選択。相互に同期します。',align:'bottom'},{el:'#rateInputs',title:'値改定率の入力',text:'キーボード入力でも即時計算（-70%〜+70%、小数1位）。',align:'right',ensure:()=>{if(chgMode!=='rate')setChgMode('rate');}},{el:'#resultCard',title:'結果の読み方',text:'改定後単価/売上高 と、限界利益率・限界利益額（改定後）＋ 現状比を表示します。',align:'top'},{el:'#graphCard',title:'グラフ（売上/数量）',text:'現状と「同じ限界利益額を維持するための必要」値を棒で比較します。',align:'top'},{el:'#sensCard',title:'感度分析',text:'±1/±5/±10%の値改定時に必要売上・数量がどう変わるかの一覧です。',align:'top'},{el:'#templateCard',title:'顧客向け告知テンプレ',text:'実データを差し込んだ文例をコピーできます。',align:'top'},{el:'#tplActions',title:'コピー＆印刷',text:'「結果をコピー」「テンプレをコピー」「印刷」で共有・出力が可能です。',align:'top'}];
+$('#copyResultBtn').addEventListener('click',()=>{
+  const text=$('#resultCard').innerText||'';
+  if(navigator.clipboard){navigator.clipboard.writeText(text);}
+});
+$('#copyTemplateBtn').addEventListener('click',()=>{
+  if(navigator.clipboard){navigator.clipboard.writeText(templateArea.value||'');}
+});
+
+try{
+  $('#cpy-year').textContent=String(new Date().getFullYear());
+  const ld=new Date(document.lastModified);
+  const z=n=>String(n).padStart(2,'0');
+  const ymd=isNaN(ld.getTime())?'':`${ld.getFullYear()}-${z(ld.getMonth()+1)}-${z(ld.getDate())}`;
+  $('#last-updated-date').textContent=ymd;
+}catch(e){}
+
+/* Tutorial */
+const helpBtn=$('#helpBtn'), tourOverlay=$('#tourOverlay'), tourHole=$('#tourHole'), tourSpot=$('#tourSpot'),
+      tourBox=$('#tourBox'), tourStepBadge=$('#tourStepBadge'), tourTitle=$('#tourTitle'),
+      tourText=$('#tourText'), tourNext=$('#tourNext'), tourBack=$('#tourBack'), tourEnd=$('#tourEnd');
+
+const steps=[
+  {el:'#price',title:'現在の単価（税抜）',text:'まず「現在の単価」を入力します。カンマ整形・範囲調整は自動。',align:'bottom'},
+  {el:'#chipsCostGroup',title:'原価 or 限界利益率',text:'入力方式を切り替えます。どちらか一方でOK。',align:'bottom'},
+  {el:'#blockCost',title:'原価（変動費）入力',text:'スライダー/直接入力。原価は「現在の単価」を上限に自動クランプ。',align:'right',
+    ensure:()=>{if(costMode!=='cost')setCostMode('cost');}},
+  {el:'#chipsVolGroup',title:'数量 or 売上高',text:'ボリュームの入力方法を選択（チップで切替）。',align:'bottom'},
+  {el:()=> (volMode==='qty' ? '#blockQty' : '#blockRev'),title:'ボリューム入力',text:'選んだ方式で入力（スライダー/直接）。',align:'bottom'},
+  {el:'#chipsChgGroup',title:'改定方式',text:'「値改定率」か「改定後単価」を選択。相互に同期します。',align:'bottom'},
+  {el:'#rateInputs',title:'値改定率の入力',text:'キーボード入力でも即時計算（-70%〜+70%、小数1位）。',align:'right',
+    ensure:()=>{if(chgMode!=='rate')setChgMode('rate');}},
+  {el:'#resultCard',title:'結果の読み方',text:'改定後単価/売上高 と、限界利益率・限界利益額（改定後）＋ 現状比を表示します。',align:'top'},
+  {el:'#graphCard',title:'グラフ（売上/数量）',text:'現状と「同じ限界利益額を維持するための必要」値を棒で比較します。',align:'top'},
+  {el:'#sensCard',title:'感度分析',text:'±1/±5/±10%の値改定時に必要売上・数量がどう変わるかの一覧です。',align:'top'},
+  {el:'#templateCard',title:'顧客向け告知テンプレ',text:'実データを差し込んだ文例をコピーできます。',align:'top'},
+  {el:'#tplActions',title:'コピー＆印刷',text:'「結果をコピー」「テンプレをコピー」「印刷」で共有・出力が可能です。',align:'top'}
+];
 let cur=0, active=false;
-const getVP=()=>{const vv=visualViewport;return vv?{w:vv.width,h:vv.height}:{w:innerWidth,h:innerHeight};};
-function place(step){const el=(typeof step.el==='function')?document.querySelector(step.el()):document.querySelector(step.el);if(!el)return;const r=el.getBoundingClientRect(),pad=6;Object.assign(tourHole.style,{left:r.left-pad+'px',top:r.top-pad+'px',width:r.width+pad*2+'px',height:r.height+pad*2+'px'});Object.assign(tourSpot.style,{left:r.left-pad+'px',top:r.top-pad+'px',width:r.width+pad*2+'px',height:r.height+pad*2+'px'});tourStepBadge.textContent=`STEP ${cur+1} / ${steps.length}`;tourTitle.textContent=step.title||'';tourText.textContent=step.text||'';const box=tourBox.getBoundingClientRect(),vp=getVP();let bx=r.left,by=r.bottom+12;if(step.align==='top')by=r.top-(box.height+12);if(step.align==='right'){bx=r.right+12;by=r.top;}if(step.align==='left'){bx=r.left-(Math.min(box.width,380)+12);by=r.top;}bx=Math.max(12,Math.min(bx,vp.w-(box.width+12)));by=Math.max(12,Math.min(by,vp.h-(box.height+12)));tourBox.style.left=bx+'px';tourBox.style.top=by+'px';tourBack.disabled=cur===0;tourNext.textContent=(cur===steps.length-1)?'完了':'次へ';}
-async function show(i){cur=Math.max(0,Math.min(i,steps.length-1));const s=steps[cur];if(s.ensure)s.ensure();const el=(typeof s.el==='function')?document.querySelector(s.el()):document.querySelector(s.el);if(el){const r=el.getBoundingClientRect(),vp=getVP(),m=110;if(!(r.top>=m&&r.bottom<=vp.h-m)){const to=window.scrollY+r.top-(vp.h/2-r.height/2)-12;window.scrollTo({top=Math.max(0,to),behavior:'auto'});await waitScrollSettled();}}await nextFrame();await wait(40);place(s);setTimeout(()=>place(s),120);}
+
+const getVP=()=>{
+  const vv=window.visualViewport;
+  return vv?{w:vv.width,h:vv.height}:{w:window.innerWidth,h:window.innerHeight};
+};
+
+function place(step){
+  const el=(typeof step.el==='function')?document.querySelector(step.el()):document.querySelector(step.el);
+  if(!el)return;
+  const r=el.getBoundingClientRect(),pad=6;
+  Object.assign(tourHole.style,{
+    left:r.left-pad+'px',top:r.top-pad+'px',
+    width:r.width+pad*2+'px',height:r.height+pad*2+'px'
+  });
+  Object.assign(tourSpot.style,{
+    left:r.left-pad+'px',top:r.top-pad+'px',
+    width:r.width+pad*2+'px',height:r.height+pad*2+'px'
+  });
+  tourStepBadge.textContent=`STEP ${cur+1} / ${steps.length}`;
+  tourTitle.textContent=step.title||'';
+  tourText.textContent=step.text||'';
+  const box=tourBox.getBoundingClientRect(),vp=getVP();
+  let bx=r.left,by=r.bottom+12;
+  if(step.align==='top')by=r.top-(box.height+12);
+  if(step.align==='right'){bx=r.right+12;by=r.top;}
+  if(step.align==='left'){bx=r.left-(Math.min(box.width,380)+12);by=r.top;}
+  bx=Math.max(12,Math.min(bx,vp.w-(box.width+12)));
+  by=Math.max(12,Math.min(by,vp.h-(box.height+12)));
+  tourBox.style.left=bx+'px';
+  tourBox.style.top=by+'px';
+  tourBack.disabled=cur===0;
+  tourNext.textContent=(cur===steps.length-1)?'完了':'次へ';
+}
+async function show(i){
+  cur=Math.max(0,Math.min(i,steps.length-1));
+  const s=steps[cur];
+  if(s.ensure)s.ensure();
+  const el=(typeof s.el==='function')?document.querySelector(s.el()):document.querySelector(s.el);
+  if(el){
+    const r=el.getBoundingClientRect(),vp=getVP(),m=110;
+    if(!(r.top>=m&&r.bottom<=vp.h-m)){
+      const to=window.scrollY+r.top-(vp.h/2-r.height/2)-12;
+      window.scrollTo({top=Math.max(0,to),behavior:'auto'});
+      await waitScrollSettled();
+    }
+  }
+  await nextFrame(); await wait(40);
+  place(s);
+  setTimeout(()=>place(s),120);
+}
 async function start(){
   active=true;
   document.documentElement.classList.add('tour-prep');
   document.body.classList.add('tour-prep');
 
-  /* ★ ここが今回の変更：開始時にサンプル自動読込 ★ */
   await loadSample({keepScroll:false});
 
   await nextFrame(); await wait(40);
-  $('#tourOverlay').classList.add('active');
-  $('#tourOverlay').setAttribute('aria-hidden','false');
+  tourOverlay.classList.add('active');
+  tourOverlay.setAttribute('aria-hidden','false');
   await show(0);
-  setTimeout(()=>{document.documentElement.classList.remove('tour-prep');document.body.classList.remove('tour-prep');},140);
+  setTimeout(()=>{
+    document.documentElement.classList.remove('tour-prep');
+    document.body.classList.remove('tour-prep');
+  },140);
 }
-function end(){active=false;$('#tourOverlay').classList.remove('active');$('#tourOverlay').setAttribute('aria-hidden','true');}
+function end(){
+  active=false;
+  tourOverlay.classList.remove('active');
+  tourOverlay.setAttribute('aria-hidden','true');
+}
 const nextOrEnd=()=>{if(cur<steps.length-1)show(cur+1);else end();};
-$('#helpBtn').addEventListener('click',start);
-$('#tourNext').addEventListener('click',nextOrEnd);
-$('#tourBack').addEventListener('click',()=>show(cur-1));
-$('#tourEnd').addEventListener('click',end);
-$('#tourOverlay').addEventListener('click',(e)=>{if(!active)return;if(!$('#tourBox').contains(e.target))nextOrEnd();});
-addEventListener('keydown',(e)=>{if(!active)return;if(e.key==='Enter'){e.preventDefault();nextOrEnd();}if(e.key==='Escape'){end();}});
+
+helpBtn.addEventListener('click',start);
+tourNext.addEventListener('click',nextOrEnd);
+tourBack.addEventListener('click',()=>show(cur-1));
+tourEnd.addEventListener('click',end);
+tourOverlay.addEventListener('click',(e)=>{
+  if(!active)return;
+  if(!tourBox.contains(e.target))nextOrEnd();
+});
+addEventListener('keydown',(e)=>{
+  if(!active)return;
+  if(e.key==='Enter'){e.preventDefault();nextOrEnd();}
+  if(e.key==='Escape'){end();}
+});
 addEventListener('resize',()=>{if(active)show(cur);},{passive:true});
 addEventListener('orientationchange',()=>{if(active)setTimeout(()=>show(cur),200);});
-if(window.visualViewport){visualViewport.addEventListener('resize',()=>{if(active)setTimeout(()=>show(cur),60);},{passive:true});}
+if(window.visualViewport){
+  window.visualViewport.addEventListener('resize',()=>{if(active)setTimeout(()=>show(cur),60);},{passive:true});
+}
 
-relocateActions();updateRanges();compute();
+relocateActions();
+updateRanges();
+compute();
 })();
 </script>
 </body>
