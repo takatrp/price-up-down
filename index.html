@@ -148,7 +148,8 @@ html.tour-prep *, body.tour-prep *{transition:none !important}
         <div id="blockQty">
           <label for="qty">月間販売数量（単位）</label>
           <div class="slider">
-            <input type="range" id="qtyRange" min="0" max="10000" step="1" />
+            <!-- ★変更：上限を100万に -->
+            <input type="range" id="qtyRange" min="0" max="1000000" step="1" />
             <input type="text" id="qty" inputmode="numeric" placeholder="例）1,000" />
           </div>
         </div>
@@ -356,8 +357,13 @@ addEventListener('resize', ()=>{relocateActions(); compute();});
 
 function updateRanges(){ const P=toNum(price.value); const ok=isFinite(P)&&P>0;
   costRange.min=0; costRange.max=ok?Math.floor(P):100000; costRange.step=1;
-  qtyRange.min=0; qtyRange.max=10000; qtyRange.step=1;
-  revRange.min=0; revRange.max=ok?Math.ceil(P*10000):3000000; revRange.step=1000;
+
+  /* ★変更：数量上限を100万に */
+  qtyRange.min=0; qtyRange.max=1000000; qtyRange.step=1;
+
+  /* ★変更：売上高上限も P×100万 に連動 */
+  revRange.min=0; revRange.max=ok?Math.ceil(P*1000000):3000000; revRange.step=1000;
+
   chgRange.min=-70; chgRange.max=70; chgRange.step=0.1;
   const absMax=ok?Math.ceil(P*2):200000; chgAbsRange.min=0; chgAbsRange.max=absMax; chgAbsRange.step=1;
   const clampIO=(rng,inp,dec=null)=>{const v=toNum(inp.value); if(isFinite(v)){ const cl=clamp(v,Number(rng.min),Number(rng.max)); if(cl!==v){inp.value=dec===0?Math.round(cl).toLocaleString('ja-JP'):cl.toLocaleString('ja-JP');} rng.value=cl;} if(dec!==null) comma(inp,dec); else comma(inp);};
