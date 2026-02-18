@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <!--
   価格改定検討ツール
-  internal version: r33
-  changes from r32:
-  - 【受信機能】打ち手検討ツール等から起動された際に数値を自動転記（URL params / seed / postMessage / BroadcastChannel）
-  - 【受信の堅牢化】mode切替→値セット→レンジ同期→計算 の順で確実に反映
-  - 表の最低限スタイル追加（sensTable）
+  internal version: r34
+  changes from r33:
+  - 【転記強化】打ち手検討ツール（https://takatrp.github.io/sale-kit/）等から mrate（限界利益率%）も受け取り、
+              costMode未指定でも mrate が来たら自動で「限界利益率」モードへ寄せて転記
+  - 【不具合修正】限界利益率（%）の手入力が「11.1 → 1.0」になる問題を修正（入力中の強制整形を停止、確定時のみ整形）
 -->
 <html lang="ja">
 <head>
@@ -106,6 +106,7 @@ html.tour-prep *, body.tour-prep *{transition:none !important}
 .importStatus.show{display:block}
 </style>
 </head>
+
 <body>
 <div class="wrap">
   <div class="header">
@@ -139,6 +140,7 @@ html.tour-prep *, body.tour-prep *{transition:none !important}
           <button class="chip active" id="chipCost" type="button">原価（変動費）</button>
           <button class="chip" id="chipMrate" type="button">限界利益率</button>
         </div>
+
         <div id="blockCost">
           <label for="cost">1単位あたり原価（変動費）</label>
           <div class="slider">
@@ -146,6 +148,7 @@ html.tour-prep *, body.tour-prep *{transition:none !important}
             <input type="text" id="cost" inputmode="decimal" placeholder="例）720" />
           </div>
         </div>
+
         <div id="blockMrate" class="hide">
           <label for="mrate">限界利益率（%）</label>
           <div class="slider">
@@ -159,15 +162,17 @@ html.tour-prep *, body.tour-prep *{transition:none !important}
           <button class="chip active" id="chipQty" type="button">数量</button>
           <button class="chip" id="chipRev" type="button">売上高</button>
         </div>
+
         <div id="blockQty">
           <label for="qty">月間販売数量（単位）</label>
           <div class="slider">
-            <!-- r32: 対数スケール用に 0..1000 にする（実数量 0..100万へマッピング） -->
+            <!-- 対数スケール用に 0..1000 にする（実数量 0..100万へマッピング） -->
             <input type="range" id="qtyRange" min="0" max="1000" step="1" />
             <input type="text" id="qty" inputmode="numeric" placeholder="例）1,000" />
           </div>
           <div class="hint">※スライダーは少量域を細かく、大量域を大きく動くように調整しています（対数スケール）。</div>
         </div>
+
         <div id="blockRev" class="hide">
           <label for="revenue">月間売上高（税抜）</label>
           <div class="slider">
@@ -210,7 +215,9 @@ html.tour-prep *, body.tour-prep *{transition:none !important}
         </div>
 
         <div class="hint" style="margin-top:6px">安全域インジケータ（値引き率が −m を超えると原価割れ）</div>
-        <div style="height:8px;border-radius:999px;background:#e5e7eb;overflow:hidden"><span id="safetyBar" style="display:block;height:100%;background:linear-gradient(90deg,var(--warn),#f59e0b,var(--ok));width:0%"></span></div>
+        <div style="height:8px;border-radius:999px;background:#e5e7eb;overflow:hidden">
+          <span id="safetyBar" style="display:block;height:100%;background:linear-gradient(90deg,var(--warn),#f59e0b,var(--ok));width:0%"></span>
+        </div>
       </div>
 
       <div class="card actions" id="actionsCard">
@@ -316,7 +323,7 @@ html.tour-prep *, body.tour-prep *{transition:none !important}
   © <span id="cpy-year">2025</span> <a href="https://www.matsumoto-kaikei.or.jp/" target="_blank" rel="noopener license">税理士法人松本会計事務所</a> ｜ 
   <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank" rel="license noopener">CC BY-NC-SA 4.0</a> ｜ 
   <a href="/tool-portal/terms.html" target="_blank" rel="noopener">利用条件</a> ｜ 
-  <span id="build-rev">r33</span>（<span id="last-updated-date"></span>）
+  <span id="build-rev">r34</span>（<span id="last-updated-date"></span>）
 </footer>
 <div class="note">本ツールは管理会計上の試算です。実際の価格変更は取引条件・競合状況・需要弾力性等も併せてご判断ください。</div>
 
@@ -368,7 +375,7 @@ function waitScrollSettled(timeout=1200, quiet=150){
 }
 const $=s=>document.querySelector(s);
 
-/* --- r32: 販売数量スライダー（対数スケール）設定 --- */
+/* --- 販売数量スライダー（対数スケール）設定 --- */
 const QTY_MAX = 1000000;        // 実数量の最大（0..100万）
 const QTY_SL_MAX = 1000;        // スライダーの最大（0..1000）
 const QTY_LOG_POW = 6;          // 10^6 を上限にした対数カーブ
@@ -507,7 +514,24 @@ function updateRanges(){
   };
 
   clampIO(costRange,cost,0);
-  clampIO(mrateRange,mrate,1);
+
+  // ★r34: mrate（%）は入力中に強制整形しない（"11.1"→"1.0"バグ対策）
+  (function(){
+    const v = toNum(mrate.value);
+    if(isFinite(v)){
+      const cl = clamp(v, Number(mrateRange.min), Number(mrateRange.max));
+      mrateRange.value = cl;
+      if(document.activeElement !== mrate){
+        // 確定時のみ整形（最大1桁、小数.0は表示しない）
+        const x = Math.round(cl*10)/10;
+        mrate.value = x.toLocaleString('ja-JP',{ maximumFractionDigits: 1 });
+      }
+    }else{
+      if(document.activeElement !== mrate){
+        mrateRange.value = 0;
+      }
+    }
+  })();
 
   if(volMode==='qty'){
     const qv=toNum(qty.value);
@@ -621,7 +645,7 @@ function buildTemplate(o){
   const keep=(isFinite(Rreq)||isFinite(Qreq))?
 `\n【同じ限界利益額を維持するために必要な水準（参考）】
 ・必要売上　${isFinite(Rreq)?yen(Rreq):'—'}
-・必要数量　${isFinite(Qreq)?Qfmt(Qreq)+' 単位':'—'}\n`:'';
+・必要数量　${isFinite(Qreq)?Qfmt(Qreq)+' 単位':'—'}\n`:''
 
   templateArea.value=
 `件名：価格改定のご案内（適用開始日：＿＿＿年＿＿月＿＿日）
@@ -824,11 +848,47 @@ const bind=(rangeEl,inputEl,dec=null)=>{
   });
 };
 bind(costRange,cost,0);
-bind(mrateRange,mrate,1);
 bind(revRange,revenue);
 bind(chgAbsRange,chgAbs,0);
 
-/* r32: 数量スライダーは対数マッピングで専用バインド */
+/* ★r34: 限界利益率（%）は入力中に整形しない（"11.1"が入力できるようにする） */
+const fmtMrate = (v)=>{
+  const x = Math.round(v*10)/10;
+  return x.toLocaleString('ja-JP',{ maximumFractionDigits: 1 });
+};
+function commitMrate(){
+  const raw = String(mrate.value||'').trim();
+  if(raw===''){ mrateRange.value = 0; compute(); return; }
+
+  const v = toNum(raw);
+  if(!isFinite(v)){
+    mrate.value = '';
+    mrateRange.value = 0;
+    compute();
+    return;
+  }
+  const cl = clamp(v, Number(mrateRange.min), Number(mrateRange.max));
+  mrateRange.value = cl;
+  mrate.value = fmtMrate(cl);
+  compute();
+}
+mrateRange.addEventListener('input', ()=>{
+  const v = clamp(Number(mrateRange.value), Number(mrateRange.min), Number(mrateRange.max));
+  if(document.activeElement !== mrate) mrate.value = fmtMrate(v);
+  compute();
+});
+mrate.addEventListener('input', ()=>{
+  // 入力中は整形しない。数値として解釈できるときだけレンジ同期。
+  const v = toNum(mrate.value);
+  if(isFinite(v)){
+    mrateRange.value = clamp(v, Number(mrateRange.min), Number(mrateRange.max));
+  }
+  compute();
+});
+mrate.addEventListener('change', commitMrate);
+mrate.addEventListener('blur', commitMrate);
+
+/* 数量スライダーは対数マッピングで専用バインド */
 qtyRange.addEventListener('input',()=>{
   const q = qtyFromSlider(qtyRange.value);
   qty.value = q.toLocaleString('ja-JP');
@@ -891,6 +951,7 @@ async function loadSample({keepScroll=true} = {}){
   chgRange.value='-5.0';
   chgPct.value='-5.0';
   chgAbs.value='';
+  mrate.value=''; // 明示クリア
 
   updateRanges();
 
@@ -908,6 +969,7 @@ $('#resetBtn').addEventListener('click',()=>{
   [price,cost,mrate,qty,revenue,chgPct,chgAbs].forEach(el=>el.value='');
   chgRange.value='0.0';
   qtyRange.value='0';
+  mrateRange.value='0';
   setCostMode('cost'); setVolMode('qty'); setChgMode('rate');
   updateRanges(); compute();
 });
@@ -932,19 +994,6 @@ try{
 }catch(e){}
 
 /* --- 受信（打ち手検討ツール → 価格改定） --- */
-/*
-  受信方式：
-  A) URL params 例:
-     ?price=1200&cost=720&qty=1000&chgPct=-5
-     &costMode=cost|mrate&volMode=qty|rev&chgMode=rate|abs
-  B) seed一括:
-     ?seed=base64url(JSON)
-     JSON例: {"price":1200,"cost":720,"qty":1000,"chgPct":-5,"costMode":"cost","volMode":"qty","chgMode":"rate"}
-  C) postMessage / BroadcastChannel:
-     message例:
-       { type:"mk_tool_bridge_seed", tool:"price", seed:{...} }
-       { type:"mk_price_tool_seed", seed:{...} }
-*/
 let _importedOnce = false;
 
 function base64urlDecodeToStr(b64u){
@@ -968,7 +1017,10 @@ function parseSeedFromURL(){
     }
   }
   // individual params
-  const keys = ['price','P','cost','C','mrate','mr','qty','Q','revenue','R','chgPct','r','chgAbs','P2','costMode','volMode','chgMode'];
+  const keys = [
+    'price','P','cost','C','mrate','mr','margin','marginRate',
+    'qty','Q','revenue','R','chgPct','r','chgAbs','P2','costMode','volMode','chgMode'
+  ];
   const hasAny = keys.some(k=>qs.has(k));
   if(!hasAny) return null;
 
@@ -982,8 +1034,11 @@ function parseSeedFromURL(){
   const C = getNum('cost'); if(isFinite(C)) seed.cost = C;
   if(!isFinite(seed.cost)){ const C2=getNum('C'); if(isFinite(C2)) seed.cost=C2; }
 
+  // mrate / mr / marginRate（%想定）
   const MR = getNum('mrate'); if(isFinite(MR)) seed.mrate = MR;
   if(!isFinite(seed.mrate)){ const MR2=getNum('mr'); if(isFinite(MR2)) seed.mrate=MR2; }
+  if(!isFinite(seed.mrate)){ const MR3=getNum('marginRate'); if(isFinite(MR3)) seed.mrate=MR3; }
+  if(!isFinite(seed.mrate)){ const MR4=getNum('margin'); if(isFinite(MR4)) seed.mrate=MR4; }
 
   const Q = getNum('qty'); if(isFinite(Q)) seed.qty = Q;
   if(!isFinite(seed.qty)){ const Q2=getNum('Q'); if(isFinite(Q2)) seed.qty=Q2; }
@@ -1049,30 +1104,52 @@ function applySeed(seed, {overwrite=true, reason='転記'} = {}){
   // 既に取り込み済みで、上書き禁止なら何もしない
   if(_importedOnce && !overwrite) return false;
 
-  // mode first
-  if(s.costMode==='mrate' || s.costMode==='cost') setCostMode(s.costMode);
+  // mode first（r34: costMode未指定でも mrate が来たら mrateへ寄せる）
+  let desiredCostMode = null;
+  if(s.costMode==='mrate' || s.costMode==='cost'){
+    desiredCostMode = s.costMode; // 明示指定が最優先
+  }else{
+    // 明示が無い場合：mrateが来ていれば mrate を優先（要望により）
+    if(isFinite(s.mrate)) desiredCostMode = 'mrate';
+    else if(isFinite(s.cost)) desiredCostMode = 'cost';
+  }
+  if(desiredCostMode) setCostMode(desiredCostMode);
+
   if(s.volMode==='rev' || s.volMode==='qty') setVolMode(s.volMode);
   if(s.chgMode==='abs' || s.chgMode==='rate') setChgMode(s.chgMode);
 
   // values
   if(isFinite(s.price)) price.value = Math.round(s.price).toLocaleString('ja-JP');
 
-  // cost/mrate
+  // まず mrate が来ているなら保持（表示モードに関わらず）
+  if(isFinite(s.mrate)){
+    const mr = clamp(s.mrate, 0, 90);
+    mrate.value = mr.toLocaleString('ja-JP', { maximumFractionDigits: 1 });
+    mrateRange.value = mr;
+  }
+
+  // cost/mrate（表示モードに応じて、足りない方を補完）
   if(costMode==='cost'){
     if(isFinite(s.cost)){
       cost.value = Math.round(s.cost).toLocaleString('ja-JP');
     }else if(isFinite(s.mrate) && isFinite(s.price) && s.price>0){
-      // mrate% -> cost
       const mr = clamp(s.mrate, 0, 99.9)/100;
       const C = s.price*(1-mr);
       cost.value = Math.round(C).toLocaleString('ja-JP');
     }
   }else{
-    if(isFinite(s.mrate)){
-      mrate.value = clamp(s.mrate,0,90).toLocaleString('ja-JP',{maximumFractionDigits:1});
-    }else if(isFinite(s.cost) && isFinite(s.price) && s.price>0){
-      const mr = (s.price - s.cost)/s.price*100;
-      mrate.value = clamp(mr,0,90).toFixed(1);
+    // costMode === 'mrate'
+    if(!isFinite(toNum(mrate.value))){
+      if(isFinite(s.mrate)){
+        const mr = clamp(s.mrate,0,90);
+        mrate.value = mr.toLocaleString('ja-JP',{ maximumFractionDigits: 1 });
+        mrateRange.value = mr;
+      }else if(isFinite(s.cost) && isFinite(s.price) && s.price>0){
+        const mr = (s.price - s.cost)/s.price*100;
+        const cl = clamp(mr,0,90);
+        mrate.value = cl.toLocaleString('ja-JP',{ maximumFractionDigits: 1 });
+        mrateRange.value = cl;
+      }
     }
   }
 
@@ -1118,7 +1195,7 @@ function applySeed(seed, {overwrite=true, reason='転記'} = {}){
   compute();
 
   _importedOnce = true;
-  showImportStatus(`✅ ${reason}：打ち手検討ツール等から数値を転記しました。`);
+  showImportStatus(`✅ ${reason}：打ち手検討ツール等から数値を転記しました（限界利益率も含む）。`);
   return true;
 }
 
@@ -1126,7 +1203,6 @@ function setupBridge(){
   // 1) URL params
   const seedUrl = parseSeedFromURL();
   if(seedUrl){
-    // 初回読み込み時は上書きOK
     applySeed(seedUrl, {overwrite:true, reason:'URLパラメータ'});
   }
 
@@ -1135,26 +1211,27 @@ function setupBridge(){
     const d = ev.data;
     if(!d || typeof d!=='object') return;
 
-    // accept multiple message shapes
-    if(d.type==='mk_tool_bridge_seed' && (d.tool==='price' || !d.tool)){
+    // 受け取り対象ツール名：price / sale / sale-kit / 未指定 などを許容
+    const toolOk = (!d.tool) || ['price','sale','sale-kit','salekit','saleKit'].includes(String(d.tool));
+    if(d.type==='mk_tool_bridge_seed' && toolOk){
       applySeed(d.seed || d.payload || d, {overwrite:true, reason:'postMessage'});
     }
     if(d.type==='mk_price_tool_seed'){
       applySeed(d.seed || d.payload || d, {overwrite:true, reason:'postMessage'});
     }
+
     // responder: opener/parent asked ready
-    if(d.type==='mk_tool_bridge_request_state' && (d.tool==='price' || !d.tool)){
-      // optional: reply current state
+    if(d.type==='mk_tool_bridge_request_state' && toolOk){
       try{
         const st = exportState();
-        const msg = {type:'mk_tool_bridge_state', tool:'price', state:st, rev:$('#build-rev')?.textContent||'r33'};
+        const msg = {type:'mk_tool_bridge_state', tool:'price', state:st, rev:$('#build-rev')?.textContent||'r34'};
         (ev.source||window.opener||window.parent)?.postMessage(msg, '*');
       }catch(e){}
     }
   });
 
-  // handshake: tell opener/parent we're ready (so sender can push seed)
-  const readyMsg = {type:'mk_tool_bridge_ready', tool:'price', rev:($('#build-rev')?.textContent||'r33')};
+  // handshake: tell opener/parent we're ready
+  const readyMsg = {type:'mk_tool_bridge_ready', tool:'price', rev:($('#build-rev')?.textContent||'r34')};
   try{ if(window.opener && window.opener !== window) window.opener.postMessage(readyMsg, '*'); }catch(e){}
   try{ if(window.parent && window.parent !== window) window.parent.postMessage(readyMsg, '*'); }catch(e){}
 
@@ -1165,7 +1242,8 @@ function setupBridge(){
       bc.onmessage = (ev)=>{
         const d = ev.data;
         if(!d || typeof d!=='object') return;
-        if(d.type==='mk_tool_bridge_seed' && (d.tool==='price' || !d.tool)){
+        const toolOk = (!d.tool) || ['price','sale','sale-kit','salekit','saleKit'].includes(String(d.tool));
+        if(d.type==='mk_tool_bridge_seed' && toolOk){
           applySeed(d.seed || d.payload || d, {overwrite:true, reason:'BroadcastChannel'});
         }
       };
@@ -1191,7 +1269,7 @@ function exportState(){
   };
 }
 
-/* --- チュートリアル（r31同等：開始時にサンプル自動投入） --- */
+/* --- チュートリアル（開始時にサンプル自動投入） --- */
 const helpBtn=$('#helpBtn'), tourOverlay=$('#tourOverlay'), tourHole=$('#tourHole'), tourSpot=$('#tourSpot'), tourBox=$('#tourBox'),
       tourStepBadge=$('#tourStepBadge'), tourTitle=$('#tourTitle'), tourText=$('#tourText'),
       tourNext=$('#tourNext'), tourBack=$('#tourBack'), tourEnd=$('#tourEnd');
