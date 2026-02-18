@@ -1,9 +1,11 @@
 <!DOCTYPE html>
-<!-- internal version: r32
-  changes from r31:
-  - 【販売数量スライダー改善】0〜100万の線形スライダーを「対数スケール」に変更
-    * 少量域は細かく、大量域は大きく動く（ドラッグで調整しやすい）
-    * 入力欄（数量）との双方向同期は維持
+<!--
+  価格改定検討ツール
+  internal version: r33
+  changes from r32:
+  - 【受信機能】打ち手検討ツール等から起動された際に数値を自動転記（URL params / seed / postMessage / BroadcastChannel）
+  - 【受信の堅牢化】mode切替→値セット→レンジ同期→計算 の順で確実に反映
+  - 表の最低限スタイル追加（sensTable）
 -->
 <html lang="ja">
 <head>
@@ -80,6 +82,12 @@ svg{width:100%;height:100%}
 .mk-mini a{color:inherit;text-decoration:underline}
 .note{font-size:.8rem;color:#6b7280;text-align:center;margin-bottom:24px}
 @media print{.slider input[type="range"],button{display:none !important}.wrap{max-width:900px}}
+/* sens table minimal */
+table.table{width:100%;border-collapse:collapse;font-size:.88rem}
+.table th,.table td{border-bottom:1px solid #e5e7eb;padding:8px 10px;text-align:right;white-space:nowrap}
+.table th:first-child,.table td:first-child{text-align:left}
+.table thead th{font-size:.78rem;color:#6b7280;font-weight:800;background:#f8fafc;border-top:1px solid #e5e7eb}
+/* tutorial */
 .tour-overlay{position:fixed;inset:0;z-index:9998;display:none}
 .tour-overlay.active{display:block}
 .tour-hole{position:fixed;pointer-events:none;border-radius:12px;box-shadow:0 0 0 9999px rgba(15,23,42,.55);z-index:9998;transition:all .18s ease}
@@ -93,6 +101,9 @@ svg{width:100%;height:100%}
 .tour-btn.primary{background:var(--brand);border-color:var(--brand);color:#fff}
 html.tour-prep, body.tour-prep{scroll-behavior:auto !important}
 html.tour-prep *, body.tour-prep *{transition:none !important}
+/* import status */
+.importStatus{margin:8px 0 0;font-size:.82rem;color:#0f172a;background:#eef6fa;border:1px solid #d6eaf3;border-radius:10px;padding:8px 10px;display:none}
+.importStatus.show{display:block}
 </style>
 </head>
 <body>
@@ -107,6 +118,8 @@ html.tour-prep *, body.tour-prep *{transition:none !important}
     </div>
   </div>
   <div class="sub">値引き/値上げの「現場インパクト」を<b>限界利益</b>で数値化＆グラフ化。</div>
+
+  <div id="importStatus" class="importStatus" role="status" aria-live="polite"></div>
 
   <div class="dashboard">
     <div class="colL">
@@ -303,7 +316,7 @@ html.tour-prep *, body.tour-prep *{transition:none !important}
   © <span id="cpy-year">2025</span> <a href="https://www.matsumoto-kaikei.or.jp/" target="_blank" rel="noopener license">税理士法人松本会計事務所</a> ｜ 
   <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank" rel="license noopener">CC BY-NC-SA 4.0</a> ｜ 
   <a href="/tool-portal/terms.html" target="_blank" rel="noopener">利用条件</a> ｜ 
-  <span id="build-rev">r32</span>（<span id="last-updated-date"></span>）
+  <span id="build-rev">r33</span>（<span id="last-updated-date"></span>）
 </footer>
 <div class="note">本ツールは管理会計上の試算です。実際の価格変更は取引条件・競合状況・需要弾力性等も併せてご判断ください。</div>
 
@@ -353,24 +366,20 @@ function waitScrollSettled(timeout=1200, quiet=150){
     setTimeout(()=>{rm();resolve();},timeout);
   });
 }
+const $=s=>document.querySelector(s);
 
 /* --- r32: 販売数量スライダー（対数スケール）設定 --- */
 const QTY_MAX = 1000000;        // 実数量の最大（0..100万）
 const QTY_SL_MAX = 1000;        // スライダーの最大（0..1000）
-const QTY_LOG_POW = 6;          // 10^6 を上限にした対数カーブ（0..1,000,000）
-
+const QTY_LOG_POW = 6;          // 10^6 を上限にした対数カーブ
 const _LOG_DEN = (Math.pow(10, QTY_LOG_POW) - 1);
 
-/** スライダー値(0..QTY_SL_MAX) → 実数量(0..QTY_MAX) */
 function qtyFromSlider(sl){
   const s = clamp(Number(sl)||0, 0, QTY_SL_MAX);
-  // 0..1 を 10^(pow*t) で伸ばす（-1 で 0 始まり）、最大を QTY_MAX に正規化
   const t = s / QTY_SL_MAX;
   const scaled = (Math.pow(10, QTY_LOG_POW * t) - 1) / _LOG_DEN; // 0..1
   return Math.round(scaled * QTY_MAX);
 }
-
-/** 実数量(0..QTY_MAX) → スライダー値(0..QTY_SL_MAX) */
 function sliderFromQty(q){
   const qq = clamp(Number(q)||0, 0, QTY_MAX);
   const scaled = qq / QTY_MAX;            // 0..1
@@ -380,8 +389,17 @@ function sliderFromQty(q){
 }
 
 let costMode='cost', volMode='qty', chgMode='rate';
-const $=s=>document.querySelector(s);
 
+const importStatusEl = $('#importStatus');
+function showImportStatus(msg){
+  if(!importStatusEl) return;
+  importStatusEl.textContent = msg;
+  importStatusEl.classList.add('show');
+  clearTimeout(showImportStatus._t);
+  showImportStatus._t = setTimeout(()=>importStatusEl.classList.remove('show'), 4200);
+}
+
+/* --- DOM --- */
 const price=$('#price'), chipCost=$('#chipCost'), chipMrate=$('#chipMrate'), chipQty=$('#chipQty'), chipRev=$('#chipRev'), chipRate=$('#chipRate'), chipAbs=$('#chipAbs');
 const blockCost=$('#blockCost'), blockMrate=$('#blockMrate'), blockQty=$('#blockQty'), blockRev=$('#blockRev');
 const cost=$('#cost'), costRange=$('#costRange'), mrate=$('#mrate'), mrateRange=$('#mrateRange');
@@ -413,6 +431,48 @@ function relocateActions(){
 }
 addEventListener('resize', ()=>{relocateActions(); compute();});
 
+/* --- モード切替 --- */
+function setCostMode(mode){
+  costMode=mode;
+  if(mode==='cost'){
+    chipCost.classList.add('active');chipMrate.classList.remove('active');
+    blockCost.classList.remove('hide');blockMrate.classList.add('hide');
+  }else{
+    chipMrate.classList.add('active');chipCost.classList.remove('active');
+    blockCost.classList.add('hide');blockMrate.classList.remove('hide');
+  }
+}
+function setVolMode(mode){
+  volMode=mode;
+  if(mode==='qty'){
+    chipQty.classList.add('active');chipRev.classList.remove('active');
+    blockQty.classList.remove('hide');blockRev.classList.add('hide');
+  }else{
+    chipRev.classList.add('active');chipQty.classList.remove('active');
+    blockQty.classList.add('hide');blockRev.classList.remove('hide');
+  }
+}
+function setChgMode(mode){
+  chgMode=mode;
+  if(mode==='rate'){
+    $('#rateInputs').classList.remove('hide'); $('#absInputs').classList.add('hide');
+    chipRate.classList.add('active'); chipAbs.classList.remove('active');
+  }else{
+    $('#rateInputs').classList.add('hide'); $('#absInputs').classList.remove('hide');
+    chipAbs.classList.add('active'); chipRate.classList.remove('active');
+    if(!chgAbs.value){
+      const P=toNum(price.value);
+      if(isFinite(P)&&P>0) chgAbs.value=Math.round(P).toLocaleString('ja-JP');
+    }
+  }
+}
+chipCost.addEventListener('click',()=>{setCostMode('cost'); updateRanges(); compute();});
+chipMrate.addEventListener('click',()=>{setCostMode('mrate'); updateRanges(); compute();});
+chipQty.addEventListener('click',()=>{setVolMode('qty'); updateRanges(); compute();});
+chipRev.addEventListener('click',()=>{setVolMode('rev'); updateRanges(); compute();});
+chipRate.addEventListener('click',()=>{setChgMode('rate'); updateRanges(); compute();});
+chipAbs.addEventListener('click',()=>{setChgMode('abs'); updateRanges(); compute();});
+
 /* --- スライダー範囲の調整（価格変更時など） --- */
 function updateRanges(){
   const P=toNum(price.value);
@@ -422,12 +482,10 @@ function updateRanges(){
   costRange.max=ok?Math.floor(P):100000;
   costRange.step=1;
 
-  // r32: 数量スライダーは対数スケールの「内部レンジ」固定
   qtyRange.min=0;
   qtyRange.max=QTY_SL_MAX;
   qtyRange.step=1;
 
-  // 売上スライダーは「単価×100万」に合わせる（以前の仕様を維持）
   revRange.min=0;
   revRange.max=ok?Math.ceil(P*QTY_MAX):3000000;
   revRange.step=1000;
@@ -448,9 +506,9 @@ function updateRanges(){
     if(dec!==null) comma(inp,dec); else comma(inp);
   };
 
-  // cost / mrate は従来通り
-  clampIO(costRange,cost);
-  // qty は「対数スライダー」なので clampIO を使わない（ここで同期）
+  clampIO(costRange,cost,0);
+  clampIO(mrateRange,mrate,1);
+
   if(volMode==='qty'){
     const qv=toNum(qty.value);
     if(isFinite(qv)){
@@ -460,9 +518,9 @@ function updateRanges(){
     }else{
       qtyRange.value = 0;
     }
+  }else{
+    clampIO(revRange,revenue);
   }
-  // revenue は従来通り
-  clampIO(revRange,revenue);
 
   // 改定後単価レンジ
   const vAbs=toNum(chgAbs.value);
@@ -765,12 +823,10 @@ const bind=(rangeEl,inputEl,dec=null)=>{
     compute();
   });
 };
-
-/* cost / mrate / revenue / chgAbs は従来どおり */
-bind(costRange,cost);
-bind(mrateRange,mrate);
+bind(costRange,cost,0);
+bind(mrateRange,mrate,1);
 bind(revRange,revenue);
-bind(chgAbsRange,chgAbs);
+bind(chgAbsRange,chgAbs,0);
 
 /* r32: 数量スライダーは対数マッピングで専用バインド */
 qtyRange.addEventListener('input',()=>{
@@ -824,41 +880,6 @@ price.addEventListener('input',()=>{
   compute();
 });
 
-/* モード切替 */
-function setCostMode(mode){
-  costMode=mode;
-  if(mode==='cost'){chipCost.classList.add('active');chipMrate.classList.remove('active');blockCost.classList.remove('hide');blockMrate.classList.add('hide');}
-  else{chipMrate.classList.add('active');chipCost.classList.remove('active');blockCost.classList.add('hide');blockMrate.classList.remove('hide');}
-  updateRanges(); compute();
-}
-function setVolMode(mode){
-  volMode=mode;
-  if(mode==='qty'){chipQty.classList.add('active');chipRev.classList.remove('active');blockQty.classList.remove('hide');blockRev.classList.add('hide');}
-  else{chipRev.classList.add('active');chipQty.classList.remove('active');blockQty.classList.add('hide');blockRev.classList.remove('hide');}
-  updateRanges(); compute();
-}
-function setChgMode(mode){
-  chgMode=mode;
-  if(mode==='rate'){
-    $('#rateInputs').classList.remove('hide'); $('#absInputs').classList.add('hide');
-    chipRate.classList.add('active'); chipAbs.classList.remove('active');
-  }else{
-    $('#rateInputs').classList.add('hide'); $('#absInputs').classList.remove('hide');
-    chipAbs.classList.add('active'); chipRate.classList.remove('active');
-    if(!chgAbs.value){
-      const P=toNum(price.value);
-      if(isFinite(P)&&P>0) chgAbs.value=Math.round(P).toLocaleString('ja-JP');
-    }
-  }
-  updateRanges(); compute();
-}
-chipCost.addEventListener('click',()=>setCostMode('cost'));
-chipMrate.addEventListener('click',()=>setCostMode('mrate'));
-chipQty.addEventListener('click',()=>setVolMode('qty'));
-chipRev.addEventListener('click',()=>setVolMode('rev'));
-chipRate.addEventListener('click',()=>setChgMode('rate'));
-chipAbs.addEventListener('click',()=>setChgMode('abs'));
-
 /* サンプル / リセット */
 async function loadSample({keepScroll=true} = {}){
   const y=window.scrollY;
@@ -874,8 +895,6 @@ async function loadSample({keepScroll=true} = {}){
   updateRanges();
 
   costRange.value=720;
-
-  // r32: qtyRange は「対数スライダー」なので、数量から逆算してセット
   qtyRange.value = sliderFromQty(1000);
 
   compute();
@@ -911,6 +930,266 @@ try{
   const ymd=isNaN(ld.getTime())?'':`${ld.getFullYear()}-${z(ld.getMonth()+1)}-${z(ld.getDate())}`;
   $('#last-updated-date').textContent=ymd;
 }catch(e){}
+
+/* --- 受信（打ち手検討ツール → 価格改定） --- */
+/*
+  受信方式：
+  A) URL params 例:
+     ?price=1200&cost=720&qty=1000&chgPct=-5
+     &costMode=cost|mrate&volMode=qty|rev&chgMode=rate|abs
+  B) seed一括:
+     ?seed=base64url(JSON)
+     JSON例: {"price":1200,"cost":720,"qty":1000,"chgPct":-5,"costMode":"cost","volMode":"qty","chgMode":"rate"}
+  C) postMessage / BroadcastChannel:
+     message例:
+       { type:"mk_tool_bridge_seed", tool:"price", seed:{...} }
+       { type:"mk_price_tool_seed", seed:{...} }
+*/
+let _importedOnce = false;
+
+function base64urlDecodeToStr(b64u){
+  try{
+    const b64 = String(b64u||'').replace(/-/g,'+').replace(/_/g,'/');
+    const pad = b64.length % 4 === 0 ? '' : '='.repeat(4 - (b64.length % 4));
+    const bin = atob(b64 + pad);
+    const bytes = Uint8Array.from(bin, c => c.charCodeAt(0));
+    return new TextDecoder('utf-8').decode(bytes);
+  }catch(e){ return null; }
+}
+function parseSeedFromURL(){
+  const qs = new URLSearchParams(location.search);
+  if(qs.has('seed')){
+    const raw = base64urlDecodeToStr(qs.get('seed'));
+    if(raw){
+      try{
+        const obj = JSON.parse(raw);
+        return (obj && typeof obj==='object') ? obj : null;
+      }catch(e){}
+    }
+  }
+  // individual params
+  const keys = ['price','P','cost','C','mrate','mr','qty','Q','revenue','R','chgPct','r','chgAbs','P2','costMode','volMode','chgMode'];
+  const hasAny = keys.some(k=>qs.has(k));
+  if(!hasAny) return null;
+
+  const seed = {};
+  const getNum = (k)=> qs.has(k) ? toNum(qs.get(k)) : NaN;
+  const getStr = (k)=> qs.has(k) ? String(qs.get(k)||'') : '';
+
+  const P = getNum('price'); if(isFinite(P)) seed.price = P;
+  if(!isFinite(seed.price)){ const P2=getNum('P'); if(isFinite(P2)) seed.price=P2; }
+
+  const C = getNum('cost'); if(isFinite(C)) seed.cost = C;
+  if(!isFinite(seed.cost)){ const C2=getNum('C'); if(isFinite(C2)) seed.cost=C2; }
+
+  const MR = getNum('mrate'); if(isFinite(MR)) seed.mrate = MR;
+  if(!isFinite(seed.mrate)){ const MR2=getNum('mr'); if(isFinite(MR2)) seed.mrate=MR2; }
+
+  const Q = getNum('qty'); if(isFinite(Q)) seed.qty = Q;
+  if(!isFinite(seed.qty)){ const Q2=getNum('Q'); if(isFinite(Q2)) seed.qty=Q2; }
+
+  const R0 = getNum('revenue'); if(isFinite(R0)) seed.revenue = R0;
+  if(!isFinite(seed.revenue)){ const R2=getNum('R'); if(isFinite(R2)) seed.revenue=R2; }
+
+  // rate is percent
+  const rPct = getNum('chgPct'); if(isFinite(rPct)) seed.chgPct = rPct;
+  if(!isFinite(seed.chgPct)){ const r2=getNum('r'); if(isFinite(r2)) seed.chgPct=r2; }
+
+  const P2a = getNum('chgAbs'); if(isFinite(P2a)) seed.chgAbs = P2a;
+  if(!isFinite(seed.chgAbs)){ const P2b=getNum('P2'); if(isFinite(P2b)) seed.chgAbs=P2b; }
+
+  const cm = getStr('costMode'); if(cm) seed.costMode = cm;
+  const vm = getStr('volMode');  if(vm) seed.volMode  = vm;
+  const gm = getStr('chgMode');  if(gm) seed.chgMode  = gm;
+
+  return seed;
+}
+
+function normalizeSeed(seed){
+  if(!seed || typeof seed!=='object') return null;
+  const s = {};
+  // allow both direct and nested payloads
+  if(seed.seed && typeof seed.seed==='object') seed = seed.seed;
+
+  // tolerate payload.input.* shape
+  if(seed.input && typeof seed.input==='object'){
+    const inp = seed.input;
+    if(inp.price!=null) seed.price = inp.price;
+    if(inp.cost!=null) seed.cost = inp.cost;
+    if(inp.mrate!=null) seed.mrate = inp.mrate;
+    if(inp.qty!=null) seed.qty = inp.qty;
+    if(inp.revenue!=null) seed.revenue = inp.revenue;
+    if(inp.chgPct!=null) seed.chgPct = inp.chgPct;
+    if(inp.chgAbs!=null) seed.chgAbs = inp.chgAbs;
+    if(inp.costMode!=null) seed.costMode = inp.costMode;
+    if(inp.volMode!=null) seed.volMode = inp.volMode;
+    if(inp.chgMode!=null) seed.chgMode = inp.chgMode;
+  }
+
+  const n = (v)=>toNum(v);
+  if(isFinite(n(seed.price))) s.price = n(seed.price);
+  if(isFinite(n(seed.cost))) s.cost = n(seed.cost);
+  if(isFinite(n(seed.mrate))) s.mrate = n(seed.mrate);
+  if(isFinite(n(seed.qty))) s.qty = n(seed.qty);
+  if(isFinite(n(seed.revenue))) s.revenue = n(seed.revenue);
+  if(isFinite(n(seed.chgPct))) s.chgPct = n(seed.chgPct);
+  if(isFinite(n(seed.chgAbs))) s.chgAbs = n(seed.chgAbs);
+
+  const cm = String(seed.costMode||'').trim(); if(cm) s.costMode = cm;
+  const vm = String(seed.volMode||'').trim();  if(vm) s.volMode  = vm;
+  const gm = String(seed.chgMode||'').trim();  if(gm) s.chgMode  = gm;
+
+  return Object.keys(s).length ? s : null;
+}
+
+function applySeed(seed, {overwrite=true, reason='転記'} = {}){
+  const s = normalizeSeed(seed);
+  if(!s) return false;
+
+  // 既に取り込み済みで、上書き禁止なら何もしない
+  if(_importedOnce && !overwrite) return false;
+
+  // mode first
+  if(s.costMode==='mrate' || s.costMode==='cost') setCostMode(s.costMode);
+  if(s.volMode==='rev' || s.volMode==='qty') setVolMode(s.volMode);
+  if(s.chgMode==='abs' || s.chgMode==='rate') setChgMode(s.chgMode);
+
+  // values
+  if(isFinite(s.price)) price.value = Math.round(s.price).toLocaleString('ja-JP');
+
+  // cost/mrate
+  if(costMode==='cost'){
+    if(isFinite(s.cost)){
+      cost.value = Math.round(s.cost).toLocaleString('ja-JP');
+    }else if(isFinite(s.mrate) && isFinite(s.price) && s.price>0){
+      // mrate% -> cost
+      const mr = clamp(s.mrate, 0, 99.9)/100;
+      const C = s.price*(1-mr);
+      cost.value = Math.round(C).toLocaleString('ja-JP');
+    }
+  }else{
+    if(isFinite(s.mrate)){
+      mrate.value = clamp(s.mrate,0,90).toLocaleString('ja-JP',{maximumFractionDigits:1});
+    }else if(isFinite(s.cost) && isFinite(s.price) && s.price>0){
+      const mr = (s.price - s.cost)/s.price*100;
+      mrate.value = clamp(mr,0,90).toFixed(1);
+    }
+  }
+
+  // qty/revenue
+  if(volMode==='qty'){
+    if(isFinite(s.qty)) qty.value = Math.round(clamp(s.qty,0,QTY_MAX)).toLocaleString('ja-JP');
+    else if(isFinite(s.revenue) && isFinite(s.price) && s.price>0){
+      qty.value = Math.round(clamp(s.revenue/s.price,0,QTY_MAX)).toLocaleString('ja-JP');
+    }
+  }else{
+    if(isFinite(s.revenue)) revenue.value = Math.round(Math.max(0,s.revenue)).toLocaleString('ja-JP');
+    else if(isFinite(s.qty) && isFinite(s.price) && s.price>0){
+      revenue.value = Math.round(Math.max(0,s.qty*s.price)).toLocaleString('ja-JP');
+    }
+  }
+
+  // change
+  if(chgMode==='rate'){
+    if(isFinite(s.chgPct)){
+      const rPct = clamp(s.chgPct,-70,70);
+      chgPct.value = rPct.toFixed(1);
+      chgRange.value = rPct.toFixed(1);
+      chgAbs.value = '';
+    }else if(isFinite(s.chgAbs)){
+      chgMode='abs'; setChgMode('abs');
+      chgAbs.value = Math.round(Math.max(0,s.chgAbs)).toLocaleString('ja-JP');
+    }
+  }else{
+    if(isFinite(s.chgAbs)){
+      chgAbs.value = Math.round(Math.max(0,s.chgAbs)).toLocaleString('ja-JP');
+    }else if(isFinite(s.chgPct) && isFinite(s.price) && s.price>0){
+      const P2 = s.price*(1+clamp(s.chgPct,-70,70)/100);
+      chgAbs.value = Math.round(Math.max(0,P2)).toLocaleString('ja-JP');
+    }
+  }
+
+  // sync and compute
+  updateRanges();
+  if(volMode==='qty'){
+    const qv = toNum(qty.value);
+    qtyRange.value = isFinite(qv) ? sliderFromQty(qv) : 0;
+  }
+  compute();
+
+  _importedOnce = true;
+  showImportStatus(`✅ ${reason}：打ち手検討ツール等から数値を転記しました。`);
+  return true;
+}
+
+function setupBridge(){
+  // 1) URL params
+  const seedUrl = parseSeedFromURL();
+  if(seedUrl){
+    // 初回読み込み時は上書きOK
+    applySeed(seedUrl, {overwrite:true, reason:'URLパラメータ'});
+  }
+
+  // 2) postMessage
+  window.addEventListener('message', (ev)=>{
+    const d = ev.data;
+    if(!d || typeof d!=='object') return;
+
+    // accept multiple message shapes
+    if(d.type==='mk_tool_bridge_seed' && (d.tool==='price' || !d.tool)){
+      applySeed(d.seed || d.payload || d, {overwrite:true, reason:'postMessage'});
+    }
+    if(d.type==='mk_price_tool_seed'){
+      applySeed(d.seed || d.payload || d, {overwrite:true, reason:'postMessage'});
+    }
+    // responder: opener/parent asked ready
+    if(d.type==='mk_tool_bridge_request_state' && (d.tool==='price' || !d.tool)){
+      // optional: reply current state
+      try{
+        const st = exportState();
+        const msg = {type:'mk_tool_bridge_state', tool:'price', state:st, rev:$('#build-rev')?.textContent||'r33'};
+        (ev.source||window.opener||window.parent)?.postMessage(msg, '*');
+      }catch(e){}
+    }
+  });
+
+  // handshake: tell opener/parent we're ready (so sender can push seed)
+  const readyMsg = {type:'mk_tool_bridge_ready', tool:'price', rev:($('#build-rev')?.textContent||'r33')};
+  try{ if(window.opener && window.opener !== window) window.opener.postMessage(readyMsg, '*'); }catch(e){}
+  try{ if(window.parent && window.parent !== window) window.parent.postMessage(readyMsg, '*'); }catch(e){}
+
+  // 3) BroadcastChannel
+  if('BroadcastChannel' in window){
+    try{
+      const bc = new BroadcastChannel('mk_tool_bridge');
+      bc.onmessage = (ev)=>{
+        const d = ev.data;
+        if(!d || typeof d!=='object') return;
+        if(d.type==='mk_tool_bridge_seed' && (d.tool==='price' || !d.tool)){
+          applySeed(d.seed || d.payload || d, {overwrite:true, reason:'BroadcastChannel'});
+        }
+      };
+      bc.postMessage(readyMsg);
+    }catch(e){}
+  }
+}
+
+/* 状態エクスポート（任意：将来の連携用） */
+function exportState(){
+  const {P,C,m,Q,R0,r,P2}=getInputs();
+  return {
+    price: isFinite(P)?P:null,
+    costMode,
+    cost: isFinite(C)?C:null,
+    mrate: isFinite(m)?(m*100):null,
+    volMode,
+    qty: isFinite(Q)?Q:null,
+    revenue: isFinite(R0)?R0:null,
+    chgMode,
+    chgPct: isFinite(r)?(r*100):null,
+    chgAbs: isFinite(P2)?P2:null
+  };
+}
 
 /* --- チュートリアル（r31同等：開始時にサンプル自動投入） --- */
 const helpBtn=$('#helpBtn'), tourOverlay=$('#tourOverlay'), tourHole=$('#tourHole'), tourSpot=$('#tourSpot'), tourBox=$('#tourBox'),
@@ -982,7 +1261,6 @@ async function start(){
   document.documentElement.classList.add('tour-prep');
   document.body.classList.add('tour-prep');
 
-  // 開始時サンプル自動投入
   await loadSample({keepScroll:false});
 
   await nextFrame(); await wait(40);
@@ -1026,6 +1304,7 @@ if(window.visualViewport){
 relocateActions();
 updateRanges();
 compute();
+setupBridge();
 })();
 </script>
 
