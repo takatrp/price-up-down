@@ -30,10 +30,19 @@ html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font-family:-
 .pill{display:inline-block;background:rgba(87,136,153,.1);color:var(--brand);font-weight:700;border-radius:999px;padding:5px 9px;font-size:.8rem}
 .cardHeader{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
 label{display:block;font-size:.86rem;color:#374151;margin:6px 0 6px;font-weight:600}
-input[type="text"],textarea{width:100%;box-sizing:border-box;border:1px solid #e5e7eb;border-radius:10px;padding:10px;font-size:1rem;background:#fff;outline:none}
+input[type="text"],textarea{width:100%;box-sizing:border-box;border:1px solid #e5e7eb;border-radius:10px;padding:10px;font-size:1rem;background:#fff;outline:none;transition: background-color 0.2s, border-color 0.2s, color 0.2s;}
 input:focus,textarea:focus{border-color:var(--brand);box-shadow:0 0 0 3px rgba(87,136,153,.15)}
 .primaryInput{border:2px solid var(--brand)!important;background:#f3f8fb}
 input::placeholder{color:#c7ccd3}
+
+/* --- 追加: 転記された値のハイライト --- */
+input.imported-value {
+  background-color: #fff9e6 !important;
+  border-color: #f2c94c !important;
+  color: var(--warn);
+  font-weight: 900;
+}
+
 .hint{font-size:.76rem;color:var(--muted);margin-top:4px}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;background:var(--brand);color:#fff;border:none;border-radius:10px;padding:10px 12px;font-weight:700;font-size:.92rem;cursor:pointer}
 .btn.alt{background:#e5e7eb;color:#111827}
@@ -56,8 +65,8 @@ input[type="range"]{width:100%}
 
 /* --- 追加: メッセージとハイライト用のスタイル --- */
 .highlight-target { transition: all 0.3s ease; }
-.highlight-target.highlight-ok { background-color: #f0fdf4; border-color: #86efac; } /* 緑系のハイライト */
-.highlight-target.highlight-warn { background-color: #fef2f2; border-color: #fecaca; } /* 赤系のハイライト */
+.highlight-target.highlight-ok { background-color: #f0fdf4; border-color: #86efac; }
+.highlight-target.highlight-warn { background-color: #fef2f2; border-color: #fecaca; }
 .kpi-msg { margin-top: 8px; font-weight: 700; font-size: 0.82rem; line-height: 1.4; }
 .highlight-ok .kpi-msg { color: #15803d; }
 .highlight-warn .kpi-msg { color: #b91c1c; }
@@ -323,7 +332,7 @@ html.tour-prep *, body.tour-prep *{transition:none !important}
   © <span id="cpy-year">2025</span> <a href="https://www.matsumoto-kaikei.or.jp/" target="_blank" rel="noopener license">税理士法人松本会計事務所</a> ｜ 
   <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank" rel="license noopener">CC BY-NC-SA 4.0</a> ｜ 
   <a href="/tool-portal/terms.html" target="_blank" rel="noopener">利用条件</a> ｜ 
-  <span id="build-rev">r35</span>（<span id="last-updated-date"></span>）
+  <span id="build-rev">r36</span>（<span id="last-updated-date"></span>）
 </footer>
 <div class="note">本ツールは管理会計上の試算です。実際の価格変更は取引条件・競合状況・需要弾力性等も併せてご判断ください。</div>
 
@@ -373,6 +382,13 @@ function waitScrollSettled(timeout=1200, quiet=150){
   });
 }
 const $=s=>document.querySelector(s);
+
+/* --- ★追加：入力時にハイライトを消去 --- */
+document.addEventListener('input', (e) => {
+  if(e.target && e.target.classList && e.target.classList.contains('imported-value')){
+    e.target.classList.remove('imported-value');
+  }
+});
 
 /* --- 販売数量スライダー（対数スケール）設定 --- */
 const QTY_MAX = 1000000;        // 実数量の最大（0..100万）
@@ -858,6 +874,7 @@ const bind=(rangeEl,inputEl,dec=null)=>{
   rangeEl.addEventListener('input',()=>{
     const v=Number(rangeEl.value);
     inputEl.value=dec===0?Math.round(v).toLocaleString('ja-JP'):v.toLocaleString('ja-JP');
+    inputEl.classList.remove('imported-value'); // スライダー操作でハイライト解除
     compute();
   });
   inputEl.addEventListener('input',()=>{
@@ -895,7 +912,10 @@ function commitMrate(){
 }
 mrateRange.addEventListener('input', ()=>{
   const v = clamp(Number(mrateRange.value), Number(mrateRange.min), Number(mrateRange.max));
-  if(document.activeElement !== mrate) mrate.value = fmtMrate(v);
+  if(document.activeElement !== mrate) {
+    mrate.value = fmtMrate(v);
+    mrate.classList.remove('imported-value');
+  }
   compute();
 });
 mrate.addEventListener('input', ()=>{
@@ -913,6 +933,7 @@ mrate.addEventListener('blur', commitMrate);
 qtyRange.addEventListener('input',()=>{
   const q = qtyFromSlider(qtyRange.value);
   qty.value = q.toLocaleString('ja-JP');
+  qty.classList.remove('imported-value');
   compute();
 });
 qty.addEventListener('input',()=>{
@@ -950,7 +971,10 @@ chgPct.addEventListener('input',onRateTextInput);
 chgPct.addEventListener('change',onRateTextCommit);
 chgPct.addEventListener('blur',onRateTextCommit);
 chgRange.addEventListener('input',()=>{
-  if(document.activeElement!==chgPct){chgPct.value=Number(chgRange.value).toFixed(1);}
+  if(document.activeElement!==chgPct){
+    chgPct.value=Number(chgRange.value).toFixed(1);
+    chgPct.classList.remove('imported-value');
+  }
   compute();
 });
 
@@ -987,7 +1011,10 @@ async function loadSample({keepScroll=true} = {}){
 $('#sampleBtn').addEventListener('click',()=>{loadSample();});
 
 $('#resetBtn').addEventListener('click',()=>{
-  [price,cost,mrate,qty,revenue,chgPct,chgAbs].forEach(el=>el.value='');
+  [price,cost,mrate,qty,revenue,chgPct,chgAbs].forEach(el=>{
+    el.value='';
+    el.classList.remove('imported-value'); // ★追加: リセット時にハイライトも消去
+  });
   chgRange.value='0.0';
   qtyRange.value='0';
   mrateRange.value='0';
@@ -1017,6 +1044,11 @@ try{
 /* --- 受信（打ち手検討ツール → 価格改定） --- */
 let _importedOnce = false;
 
+// ★追加：DOM要素にハイライトクラスを付与するヘルパー
+function markImported(el) {
+  if(el) el.classList.add('imported-value');
+}
+
 function base64urlDecodeToStr(b64u){
   try{
     const b64 = String(b64u||'').replace(/-/g,'+').replace(/_/g,'/');
@@ -1040,7 +1072,8 @@ function parseSeedFromURL(){
   // individual params
   const keys = [
     'price','P','cost','C','mrate','mr','margin','marginRate',
-    'qty','Q','revenue','R','chgPct','r','chgAbs','P2','costMode','volMode','chgMode'
+    'qty','Q','revenue','R','chgPct','r','chgAbs','P2','costMode','volMode','chgMode',
+    'target_up_pct', 'need_pct', 'rate_up' // ★追加：打ち手検討ツールからの上乗せ率
   ];
   const hasAny = keys.some(k=>qs.has(k));
   if(!hasAny) return null;
@@ -1067,9 +1100,12 @@ function parseSeedFromURL(){
   const R0 = getNum('revenue'); if(isFinite(R0)) seed.revenue = R0;
   if(!isFinite(seed.revenue)){ const R2=getNum('R'); if(isFinite(R2)) seed.revenue=R2; }
 
-  // rate is percent
+  // rate is percent (★追加：上乗せ率の各種パラメータ名を拾う)
   const rPct = getNum('chgPct'); if(isFinite(rPct)) seed.chgPct = rPct;
   if(!isFinite(seed.chgPct)){ const r2=getNum('r'); if(isFinite(r2)) seed.chgPct=r2; }
+  if(!isFinite(seed.chgPct)){ const r3=getNum('target_up_pct'); if(isFinite(r3)) seed.chgPct=r3; }
+  if(!isFinite(seed.chgPct)){ const r4=getNum('need_pct'); if(isFinite(r4)) seed.chgPct=r4; }
+  if(!isFinite(seed.chgPct)){ const r5=getNum('rate_up'); if(isFinite(r5)) seed.chgPct=r5; }
 
   const P2a = getNum('chgAbs'); if(isFinite(P2a)) seed.chgAbs = P2a;
   if(!isFinite(seed.chgAbs)){ const P2b=getNum('P2'); if(isFinite(P2b)) seed.chgAbs=P2b; }
@@ -1125,12 +1161,11 @@ function applySeed(seed, {overwrite=true, reason='転記'} = {}){
   // 既に取り込み済みで、上書き禁止なら何もしない
   if(_importedOnce && !overwrite) return false;
 
-  // mode first（r34: costMode未指定でも mrate が来たら mrateへ寄せる）
+  // mode first
   let desiredCostMode = null;
   if(s.costMode==='mrate' || s.costMode==='cost'){
-    desiredCostMode = s.costMode; // 明示指定が最優先
+    desiredCostMode = s.costMode; 
   }else{
-    // 明示が無い場合：mrateが来ていれば mrate を優先（要望により）
     if(isFinite(s.mrate)) desiredCostMode = 'mrate';
     else if(isFinite(s.cost)) desiredCostMode = 'cost';
   }
@@ -1140,23 +1175,29 @@ function applySeed(seed, {overwrite=true, reason='転記'} = {}){
   if(s.chgMode==='abs' || s.chgMode==='rate') setChgMode(s.chgMode);
 
   // values
-  if(isFinite(s.price)) price.value = Math.round(s.price).toLocaleString('ja-JP');
+  if(isFinite(s.price)) {
+    price.value = Math.round(s.price).toLocaleString('ja-JP');
+    markImported(price); // ★追加
+  }
 
-  // まず mrate が来ているなら保持（表示モードに関わらず）
+  // まず mrate が来ているなら保持
   if(isFinite(s.mrate)){
     const mr = clamp(s.mrate, 0, 90);
     mrate.value = mr.toLocaleString('ja-JP', { maximumFractionDigits: 1 });
     mrateRange.value = mr;
+    markImported(mrate); // ★追加
   }
 
-  // cost/mrate（表示モードに応じて、足りない方を補完）
+  // cost/mrate
   if(costMode==='cost'){
     if(isFinite(s.cost)){
       cost.value = Math.round(s.cost).toLocaleString('ja-JP');
+      markImported(cost); // ★追加
     }else if(isFinite(s.mrate) && isFinite(s.price) && s.price>0){
       const mr = clamp(s.mrate, 0, 99.9)/100;
       const C = s.price*(1-mr);
       cost.value = Math.round(C).toLocaleString('ja-JP');
+      markImported(cost); // 逆算された原価も転記されたものとみなす
     }
   }else{
     // costMode === 'mrate'
@@ -1165,25 +1206,35 @@ function applySeed(seed, {overwrite=true, reason='転記'} = {}){
         const mr = clamp(s.mrate,0,90);
         mrate.value = mr.toLocaleString('ja-JP',{ maximumFractionDigits: 1 });
         mrateRange.value = mr;
+        markImported(mrate);
       }else if(isFinite(s.cost) && isFinite(s.price) && s.price>0){
         const mr = (s.price - s.cost)/s.price*100;
         const cl = clamp(mr,0,90);
         mrate.value = cl.toLocaleString('ja-JP',{ maximumFractionDigits: 1 });
         mrateRange.value = cl;
+        markImported(mrate);
       }
     }
   }
 
   // qty/revenue
   if(volMode==='qty'){
-    if(isFinite(s.qty)) qty.value = Math.round(clamp(s.qty,0,QTY_MAX)).toLocaleString('ja-JP');
+    if(isFinite(s.qty)) {
+      qty.value = Math.round(clamp(s.qty,0,QTY_MAX)).toLocaleString('ja-JP');
+      markImported(qty);
+    }
     else if(isFinite(s.revenue) && isFinite(s.price) && s.price>0){
       qty.value = Math.round(clamp(s.revenue/s.price,0,QTY_MAX)).toLocaleString('ja-JP');
+      markImported(qty);
     }
   }else{
-    if(isFinite(s.revenue)) revenue.value = Math.round(Math.max(0,s.revenue)).toLocaleString('ja-JP');
+    if(isFinite(s.revenue)) {
+      revenue.value = Math.round(Math.max(0,s.revenue)).toLocaleString('ja-JP');
+      markImported(revenue);
+    }
     else if(isFinite(s.qty) && isFinite(s.price) && s.price>0){
       revenue.value = Math.round(Math.max(0,s.qty*s.price)).toLocaleString('ja-JP');
+      markImported(revenue);
     }
   }
 
@@ -1194,16 +1245,20 @@ function applySeed(seed, {overwrite=true, reason='転記'} = {}){
       chgPct.value = rPct.toFixed(1);
       chgRange.value = rPct.toFixed(1);
       chgAbs.value = '';
+      markImported(chgPct); // ★追加：打ち手検討ツールからの値改定率
     }else if(isFinite(s.chgAbs)){
       chgMode='abs'; setChgMode('abs');
       chgAbs.value = Math.round(Math.max(0,s.chgAbs)).toLocaleString('ja-JP');
+      markImported(chgAbs);
     }
   }else{
     if(isFinite(s.chgAbs)){
       chgAbs.value = Math.round(Math.max(0,s.chgAbs)).toLocaleString('ja-JP');
+      markImported(chgAbs);
     }else if(isFinite(s.chgPct) && isFinite(s.price) && s.price>0){
       const P2 = s.price*(1+clamp(s.chgPct,-70,70)/100);
       chgAbs.value = Math.round(Math.max(0,P2)).toLocaleString('ja-JP');
+      markImported(chgAbs);
     }
   }
 
@@ -1245,14 +1300,14 @@ function setupBridge(){
     if(d.type==='mk_tool_bridge_request_state' && toolOk){
       try{
         const st = exportState();
-        const msg = {type:'mk_tool_bridge_state', tool:'price', state:st, rev:$('#build-rev')?.textContent||'r35'};
+        const msg = {type:'mk_tool_bridge_state', tool:'price', state:st, rev:$('#build-rev')?.textContent||'r36'};
         (ev.source||window.opener||window.parent)?.postMessage(msg, '*');
       }catch(e){}
     }
   });
 
   // handshake: tell opener/parent we're ready
-  const readyMsg = {type:'mk_tool_bridge_ready', tool:'price', rev:($('#build-rev')?.textContent||'r35')};
+  const readyMsg = {type:'mk_tool_bridge_ready', tool:'price', rev:($('#build-rev')?.textContent||'r36')};
   try{ if(window.opener && window.opener !== window) window.opener.postMessage(readyMsg, '*'); }catch(e){}
   try{ if(window.parent && window.parent !== window) window.parent.postMessage(readyMsg, '*'); }catch(e){}
 
