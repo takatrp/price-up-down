@@ -35,7 +35,7 @@ input:focus,textarea:focus{border-color:var(--brand);box-shadow:0 0 0 3px rgba(8
 .primaryInput{border:2px solid var(--brand)!important;background:#f3f8fb}
 input::placeholder{color:#c7ccd3}
 
-/* --- 追加: 転記された値のハイライト --- */
+/* --- 転記された値のハイライト --- */
 input.imported-value {
   background-color: #fff9e6 !important;
   border-color: #f2c94c !important;
@@ -63,7 +63,7 @@ input[type="range"]{width:100%}
 .kpi .val{font-size:1.2rem;font-weight:800;margin-top:2px}
 .kpi .sub{font-size:.78rem;color:#6b7280;margin-top:2px}
 
-/* --- 追加: メッセージとハイライト用のスタイル --- */
+/* --- メッセージとハイライト用のスタイル --- */
 .highlight-target { transition: all 0.3s ease; }
 .highlight-target.highlight-ok { background-color: #f0fdf4; border-color: #86efac; }
 .highlight-target.highlight-warn { background-color: #fef2f2; border-color: #fecaca; }
@@ -270,9 +270,9 @@ html.tour-prep *, body.tour-prep *{transition:none !important}
             <div class="hint" id="kpi_reqRevDiff"></div>
           </div>
           <div class="item highlight-target" id="reqQtyCard">
-            <div class="lbl">同じ限界利益額を維持するための必要数量</div>
-            <div class="val" id="kpi_reqQty">—</div>
-            <div class="hint" id="kpi_reqQtyDiff"></div>
+            <div class="lbl">同じ限界利益額を維持するための数量変化</div>
+            <div class="val" id="kpi_reqQtyDiff">—</div>
+            <div class="sub" id="kpi_reqQty">—</div>
             <div class="kpi-msg" id="kpi_reqQtyMsg"></div>
           </div>
         </div>
@@ -332,7 +332,7 @@ html.tour-prep *, body.tour-prep *{transition:none !important}
   © <span id="cpy-year">2025</span> <a href="https://www.matsumoto-kaikei.or.jp/" target="_blank" rel="noopener license">税理士法人松本会計事務所</a> ｜ 
   <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank" rel="license noopener">CC BY-NC-SA 4.0</a> ｜ 
   <a href="/tool-portal/terms.html" target="_blank" rel="noopener">利用条件</a> ｜ 
-  <span id="build-rev">r36</span>（<span id="last-updated-date"></span>）
+  <span id="build-rev">r37</span>（<span id="last-updated-date"></span>）
 </footer>
 <div class="note">本ツールは管理会計上の試算です。実際の価格変更は取引条件・競合状況・需要弾力性等も併せてご判断ください。</div>
 
@@ -383,7 +383,7 @@ function waitScrollSettled(timeout=1200, quiet=150){
 }
 const $=s=>document.querySelector(s);
 
-/* --- ★追加：入力時にハイライトを消去 --- */
+/* --- 入力時にハイライトを消去 --- */
 document.addEventListener('input', (e) => {
   if(e.target && e.target.classList && e.target.classList.contains('imported-value')){
     e.target.classList.remove('imported-value');
@@ -435,7 +435,6 @@ const kpi_price2=$('#kpi_price2'), kpi_rev2=$('#kpi_rev2'), kpi_rev2diff=$('#kpi
       kpi_reqQty=$('#kpi_reqQty'), kpi_reqQtyDiff=$('#kpi_reqQtyDiff'),
       dangerMsg=$('#dangerMsg');
 
-// --- 追加: メッセージ枠のエレメント取得 ---
 const reqQtyCard=$('#reqQtyCard'), kpi_reqQtyMsg=$('#kpi_reqQtyMsg');
 
 const sensBody=$('#sensTable tbody'), actions=$('#actions'), templateArea=$('#templateArea'), actionsCard=$('#actionsCard'), sensCard=$('#sensCard');
@@ -533,14 +532,14 @@ function updateRanges(){
 
   clampIO(costRange,cost,0);
 
-  // ★r34: mrate（%）は入力中に強制整形しない（"11.1"→"1.0"バグ対策）
+  // mrate（%）は入力中に強制整形しない
   (function(){
     const v = toNum(mrate.value);
     if(isFinite(v)){
       const cl = clamp(v, Number(mrateRange.min), Number(mrateRange.max));
       mrateRange.value = cl;
       if(document.activeElement !== mrate){
-        // 確定時のみ整形（最大1桁、小数.0は表示しない）
+        // 確定時のみ整形
         const x = Math.round(cl*10)/10;
         mrate.value = x.toLocaleString('ja-JP',{ maximumFractionDigits: 1 });
       }
@@ -789,7 +788,7 @@ function compute(){
   kpi_rev2diff.textContent='現状比 —';
   dangerMsg.classList.add('hide');
   
-  // --- 変更箇所: 状態のリセット ---
+  // 状態のリセット
   if(kpi_reqQtyMsg) kpi_reqQtyMsg.textContent = '';
   if(reqQtyCard) reqQtyCard.classList.remove('highlight-ok', 'highlight-warn');
 
@@ -841,11 +840,16 @@ function compute(){
     kpi_reqRevDiff.textContent=(ratioR>=0?'現状比 +':'現状比 ')+(ratioR*100).toFixed(1)+'% （差額 '+yen(dR)+'）';
   }
   if(isFinite(Qreq)){
-    kpi_reqQty.textContent=(Math.round(Qreq*100)/100).toLocaleString('ja-JP')+' 単位';
-    const ratioQ=Qv>0?(Qreq/Qv-1):0,sign=ratioQ>=0?'+':'';
-    kpi_reqQtyDiff.textContent=`現状比 ${sign}${(ratioQ*100).toFixed(1)}% （差分 ${(Math.round(dQ*100)/100).toLocaleString('ja-JP')} 単位）`;
+    const ratioQ=Qv>0?(Qreq/Qv-1):0, sign=ratioQ>=0?'+':'';
+    const signD=dQ>=0?'+':''; // 差分用のプラス記号
+    
+    // ★変更箇所：差分（現状比と単位数）を大きく表示する
+    kpi_reqQtyDiff.innerHTML=`<span style="font-size:0.75em; margin-right:4px; font-weight:600;">現状比</span>${sign}${(ratioQ*100).toFixed(1)}% <span style="font-size:0.8em; margin-left:4px;">(差分 ${signD}${(Math.round(dQ*100)/100).toLocaleString('ja-JP')} 単位)</span>`;
+    
+    // ★変更箇所：総数は小さく表示する
+    kpi_reqQty.textContent=`※総数目安: ${(Math.round(Qreq*100)/100).toLocaleString('ja-JP')} 単位`;
 
-    // --- 変更箇所: 増減によるハイライトとメッセージの出し分け ---
+    // 増減によるハイライトとメッセージの出し分け
     if(reqQtyCard && kpi_reqQtyMsg){
       let msg = '';
       if(dQ < -0.001){
@@ -889,7 +893,7 @@ bind(costRange,cost,0);
 bind(revRange,revenue);
 bind(chgAbsRange,chgAbs,0);
 
-/* ★r34: 限界利益率（%）は入力中に整形しない（"11.1"が入力できるようにする） */
+/* mrate（%）のバインド */
 const fmtMrate = (v)=>{
   const x = Math.round(v*10)/10;
   return x.toLocaleString('ja-JP',{ maximumFractionDigits: 1 });
@@ -919,7 +923,6 @@ mrateRange.addEventListener('input', ()=>{
   compute();
 });
 mrate.addEventListener('input', ()=>{
-  // 入力中は整形しない。数値として解釈できるときだけレンジ同期。
   const v = toNum(mrate.value);
   if(isFinite(v)){
     mrateRange.value = clamp(v, Number(mrateRange.min), Number(mrateRange.max));
@@ -950,7 +953,7 @@ qty.addEventListener('input',()=>{
   compute();
 });
 
-/* 値改定率（入力途中の - / 末尾ドット許容） */
+/* 値改定率 */
 function onRateTextInput(){
   const raw=chgPct.value.trim().replace(/[％%]/g,'');
   if(/^-?$|^-?\d+\.?$/.test(raw)){compute();return;}
@@ -996,7 +999,7 @@ async function loadSample({keepScroll=true} = {}){
   chgRange.value='-5.0';
   chgPct.value='-5.0';
   chgAbs.value='';
-  mrate.value=''; // 明示クリア
+  mrate.value=''; 
 
   updateRanges();
 
@@ -1013,7 +1016,7 @@ $('#sampleBtn').addEventListener('click',()=>{loadSample();});
 $('#resetBtn').addEventListener('click',()=>{
   [price,cost,mrate,qty,revenue,chgPct,chgAbs].forEach(el=>{
     el.value='';
-    el.classList.remove('imported-value'); // ★追加: リセット時にハイライトも消去
+    el.classList.remove('imported-value'); // リセット時にハイライトも消去
   });
   chgRange.value='0.0';
   qtyRange.value='0';
@@ -1044,7 +1047,6 @@ try{
 /* --- 受信（打ち手検討ツール → 価格改定） --- */
 let _importedOnce = false;
 
-// ★追加：DOM要素にハイライトクラスを付与するヘルパー
 function markImported(el) {
   if(el) el.classList.add('imported-value');
 }
@@ -1069,11 +1071,10 @@ function parseSeedFromURL(){
       }catch(e){}
     }
   }
-  // individual params
   const keys = [
     'price','P','cost','C','mrate','mr','margin','marginRate',
     'qty','Q','revenue','R','chgPct','r','chgAbs','P2','costMode','volMode','chgMode',
-    'target_up_pct', 'need_pct', 'rate_up' // ★追加：打ち手検討ツールからの上乗せ率
+    'target_up_pct', 'need_pct', 'rate_up'
   ];
   const hasAny = keys.some(k=>qs.has(k));
   if(!hasAny) return null;
@@ -1088,7 +1089,6 @@ function parseSeedFromURL(){
   const C = getNum('cost'); if(isFinite(C)) seed.cost = C;
   if(!isFinite(seed.cost)){ const C2=getNum('C'); if(isFinite(C2)) seed.cost=C2; }
 
-  // mrate / mr / marginRate（%想定）
   const MR = getNum('mrate'); if(isFinite(MR)) seed.mrate = MR;
   if(!isFinite(seed.mrate)){ const MR2=getNum('mr'); if(isFinite(MR2)) seed.mrate=MR2; }
   if(!isFinite(seed.mrate)){ const MR3=getNum('marginRate'); if(isFinite(MR3)) seed.mrate=MR3; }
@@ -1100,7 +1100,6 @@ function parseSeedFromURL(){
   const R0 = getNum('revenue'); if(isFinite(R0)) seed.revenue = R0;
   if(!isFinite(seed.revenue)){ const R2=getNum('R'); if(isFinite(R2)) seed.revenue=R2; }
 
-  // rate is percent (★追加：上乗せ率の各種パラメータ名を拾う)
   const rPct = getNum('chgPct'); if(isFinite(rPct)) seed.chgPct = rPct;
   if(!isFinite(seed.chgPct)){ const r2=getNum('r'); if(isFinite(r2)) seed.chgPct=r2; }
   if(!isFinite(seed.chgPct)){ const r3=getNum('target_up_pct'); if(isFinite(r3)) seed.chgPct=r3; }
@@ -1120,10 +1119,8 @@ function parseSeedFromURL(){
 function normalizeSeed(seed){
   if(!seed || typeof seed!=='object') return null;
   const s = {};
-  // allow both direct and nested payloads
   if(seed.seed && typeof seed.seed==='object') seed = seed.seed;
 
-  // tolerate payload.input.* shape
   if(seed.input && typeof seed.input==='object'){
     const inp = seed.input;
     if(inp.price!=null) seed.price = inp.price;
@@ -1158,10 +1155,8 @@ function applySeed(seed, {overwrite=true, reason='転記'} = {}){
   const s = normalizeSeed(seed);
   if(!s) return false;
 
-  // 既に取り込み済みで、上書き禁止なら何もしない
   if(_importedOnce && !overwrite) return false;
 
-  // mode first
   let desiredCostMode = null;
   if(s.costMode==='mrate' || s.costMode==='cost'){
     desiredCostMode = s.costMode; 
@@ -1177,30 +1172,27 @@ function applySeed(seed, {overwrite=true, reason='転記'} = {}){
   // values
   if(isFinite(s.price)) {
     price.value = Math.round(s.price).toLocaleString('ja-JP');
-    markImported(price); // ★追加
+    markImported(price);
   }
 
-  // まず mrate が来ているなら保持
   if(isFinite(s.mrate)){
     const mr = clamp(s.mrate, 0, 90);
     mrate.value = mr.toLocaleString('ja-JP', { maximumFractionDigits: 1 });
     mrateRange.value = mr;
-    markImported(mrate); // ★追加
+    markImported(mrate);
   }
 
-  // cost/mrate
   if(costMode==='cost'){
     if(isFinite(s.cost)){
       cost.value = Math.round(s.cost).toLocaleString('ja-JP');
-      markImported(cost); // ★追加
+      markImported(cost);
     }else if(isFinite(s.mrate) && isFinite(s.price) && s.price>0){
       const mr = clamp(s.mrate, 0, 99.9)/100;
       const C = s.price*(1-mr);
       cost.value = Math.round(C).toLocaleString('ja-JP');
-      markImported(cost); // 逆算された原価も転記されたものとみなす
+      markImported(cost);
     }
   }else{
-    // costMode === 'mrate'
     if(!isFinite(toNum(mrate.value))){
       if(isFinite(s.mrate)){
         const mr = clamp(s.mrate,0,90);
@@ -1217,7 +1209,6 @@ function applySeed(seed, {overwrite=true, reason='転記'} = {}){
     }
   }
 
-  // qty/revenue
   if(volMode==='qty'){
     if(isFinite(s.qty)) {
       qty.value = Math.round(clamp(s.qty,0,QTY_MAX)).toLocaleString('ja-JP');
@@ -1238,14 +1229,13 @@ function applySeed(seed, {overwrite=true, reason='転記'} = {}){
     }
   }
 
-  // change
   if(chgMode==='rate'){
     if(isFinite(s.chgPct)){
       const rPct = clamp(s.chgPct,-70,70);
       chgPct.value = rPct.toFixed(1);
       chgRange.value = rPct.toFixed(1);
       chgAbs.value = '';
-      markImported(chgPct); // ★追加：打ち手検討ツールからの値改定率
+      markImported(chgPct);
     }else if(isFinite(s.chgAbs)){
       chgMode='abs'; setChgMode('abs');
       chgAbs.value = Math.round(Math.max(0,s.chgAbs)).toLocaleString('ja-JP');
@@ -1262,7 +1252,6 @@ function applySeed(seed, {overwrite=true, reason='転記'} = {}){
     }
   }
 
-  // sync and compute
   updateRanges();
   if(volMode==='qty'){
     const qv = toNum(qty.value);
@@ -1276,18 +1265,15 @@ function applySeed(seed, {overwrite=true, reason='転記'} = {}){
 }
 
 function setupBridge(){
-  // 1) URL params
   const seedUrl = parseSeedFromURL();
   if(seedUrl){
     applySeed(seedUrl, {overwrite:true, reason:'URLパラメータ'});
   }
 
-  // 2) postMessage
   window.addEventListener('message', (ev)=>{
     const d = ev.data;
     if(!d || typeof d!=='object') return;
 
-    // 受け取り対象ツール名：price / sale / sale-kit / 未指定 などを許容
     const toolOk = (!d.tool) || ['price','sale','sale-kit','salekit','saleKit'].includes(String(d.tool));
     if(d.type==='mk_tool_bridge_seed' && toolOk){
       applySeed(d.seed || d.payload || d, {overwrite:true, reason:'postMessage'});
@@ -1296,22 +1282,19 @@ function setupBridge(){
       applySeed(d.seed || d.payload || d, {overwrite:true, reason:'postMessage'});
     }
 
-    // responder: opener/parent asked ready
     if(d.type==='mk_tool_bridge_request_state' && toolOk){
       try{
         const st = exportState();
-        const msg = {type:'mk_tool_bridge_state', tool:'price', state:st, rev:$('#build-rev')?.textContent||'r36'};
+        const msg = {type:'mk_tool_bridge_state', tool:'price', state:st, rev:$('#build-rev')?.textContent||'r37'};
         (ev.source||window.opener||window.parent)?.postMessage(msg, '*');
       }catch(e){}
     }
   });
 
-  // handshake: tell opener/parent we're ready
-  const readyMsg = {type:'mk_tool_bridge_ready', tool:'price', rev:($('#build-rev')?.textContent||'r36')};
+  const readyMsg = {type:'mk_tool_bridge_ready', tool:'price', rev:($('#build-rev')?.textContent||'r37')};
   try{ if(window.opener && window.opener !== window) window.opener.postMessage(readyMsg, '*'); }catch(e){}
   try{ if(window.parent && window.parent !== window) window.parent.postMessage(readyMsg, '*'); }catch(e){}
 
-  // 3) BroadcastChannel
   if('BroadcastChannel' in window){
     try{
       const bc = new BroadcastChannel('mk_tool_bridge');
@@ -1328,7 +1311,6 @@ function setupBridge(){
   }
 }
 
-/* 状態エクスポート（任意：将来の連携用） */
 function exportState(){
   const {P,C,m,Q,R0,r,P2}=getInputs();
   return {
@@ -1345,7 +1327,7 @@ function exportState(){
   };
 }
 
-/* --- チュートリアル（開始時にサンプル自動投入） --- */
+/* --- チュートリアル --- */
 const helpBtn=$('#helpBtn'), tourOverlay=$('#tourOverlay'), tourHole=$('#tourHole'), tourSpot=$('#tourSpot'), tourBox=$('#tourBox'),
       tourStepBadge=$('#tourStepBadge'), tourTitle=$('#tourTitle'), tourText=$('#tourText'),
       tourNext=$('#tourNext'), tourBack=$('#tourBack'), tourEnd=$('#tourEnd');
